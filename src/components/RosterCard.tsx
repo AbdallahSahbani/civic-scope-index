@@ -18,6 +18,13 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+// Generate a consistent avatar gradient class based on name
+function getAvatarGradient(name: string): string {
+  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const variants = ['initials-avatar', 'initials-avatar-alt-1', 'initials-avatar-alt-2', 'initials-avatar-alt-3', 'initials-avatar-alt-4'];
+  return variants[hash % variants.length];
+}
+
 function getPartyColor(party: string): string {
   const partyLower = party.toLowerCase();
   if (partyLower.includes('republican')) return 'bg-red-100 text-red-800 border-red-200';
@@ -37,6 +44,7 @@ export function RosterCard({ entity, compact = false }: RosterCardProps) {
   const initials = getInitials(entity.name);
   const partyColorClass = getPartyColor(entity.party);
   const ChamberIcon = getChamberIcon(entity.chamber);
+  const avatarGradient = getAvatarGradient(entity.name);
 
   const handleClick = () => {
     // Navigate to entity profile with source-specific ID
@@ -59,8 +67,8 @@ export function RosterCard({ entity, compact = false }: RosterCardProps) {
         }}
       >
         <div className="flex items-center gap-3 mb-3">
-          {/* Photo Avatar with Initials Fallback */}
-          <div className="relative h-10 w-10 rounded-full bg-muted shrink-0 border border-border overflow-hidden">
+          {/* Photo Avatar with Gradient Initials Fallback */}
+          <div className="relative h-10 w-10 rounded-full shrink-0 border border-border/50 overflow-hidden shadow-sm">
             {entity.photoUrl ? (
               <img 
                 src={entity.photoUrl} 
@@ -72,7 +80,7 @@ export function RosterCard({ entity, compact = false }: RosterCardProps) {
                 }}
               />
             ) : null}
-            <div className={`absolute inset-0 flex items-center justify-center text-muted-foreground font-serif font-semibold text-sm ${entity.photoUrl ? 'hidden' : ''}`}>
+            <div className={`absolute inset-0 flex items-center justify-center text-white font-serif font-semibold text-sm ${avatarGradient} ${entity.photoUrl ? 'hidden' : ''}`}>
               {initials}
             </div>
           </div>
@@ -117,8 +125,8 @@ export function RosterCard({ entity, compact = false }: RosterCardProps) {
       }}
     >
       <div className="flex items-center gap-4">
-        {/* Photo Avatar with Initials Fallback */}
-        <div className="relative h-12 w-12 rounded-full bg-muted shrink-0 border border-border overflow-hidden">
+        {/* Photo Avatar with Gradient Initials Fallback */}
+        <div className="relative h-12 w-12 rounded-full shrink-0 border border-border/50 overflow-hidden shadow-sm">
           {entity.photoUrl ? (
             <img 
               src={entity.photoUrl} 
@@ -131,7 +139,7 @@ export function RosterCard({ entity, compact = false }: RosterCardProps) {
               }}
             />
           ) : null}
-          <div className={`absolute inset-0 flex items-center justify-center text-muted-foreground font-serif font-semibold text-base ${entity.photoUrl ? 'hidden' : ''}`}>
+          <div className={`absolute inset-0 flex items-center justify-center text-white font-serif font-semibold text-base ${avatarGradient} ${entity.photoUrl ? 'hidden' : ''}`}>
             {initials}
           </div>
         </div>
