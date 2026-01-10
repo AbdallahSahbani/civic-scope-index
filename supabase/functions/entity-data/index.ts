@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { checkUSAOnly, createGeoBlockedResponse, sanitizeString, validateBioguideId, validateState } from "../_shared/geo-restrict.ts";
+import { checkUSAOnly, createGeoBlockedResponse, sanitizeString } from "../_shared/geo-restrict.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,17 +60,11 @@ async function fetchSponsoredBills(bioguideId: string, apiKey: string) {
   }
 }
 
-async function fetchMemberVotes(bioguideId: string, apiKey: string, chamber: string) {
+async function fetchMemberVotes(bioguideId: string, apiKey: string) {
   try {
-    // Congress.gov doesn't have direct member votes endpoint, so we fetch recent roll call votes
-    // and note which ones the member participated in
-    const currentCongress = 118; // Current congress
-    const url = new URL(`${CONGRESS_BASE}/member/${bioguideId}`);
-    url.searchParams.set('api_key', apiKey);
+    console.log(`Fetching cosponsored legislation for ${bioguideId}...`);
     
-    console.log(`Fetching votes for ${bioguideId}...`);
-    
-    // Get member's voting record via their cosponsored legislation as a proxy
+    // Get member's cosponsored legislation
     const cosponsoredUrl = new URL(`${CONGRESS_BASE}/member/${bioguideId}/cosponsored-legislation`);
     cosponsoredUrl.searchParams.set('api_key', apiKey);
     cosponsoredUrl.searchParams.set('limit', '15');
@@ -90,30 +84,100 @@ async function fetchMemberVotes(bioguideId: string, apiKey: string, chamber: str
       url: item.url,
     }));
   } catch (error) {
-    console.error('Error fetching votes:', error);
+    console.error('Error fetching cosponsored legislation:', error);
     return [];
   }
 }
 
-async function fetchFECData(name: string, state: string, apiKey: string) {
+/**
+ * FEC Two-Step Resolution:
+ * Step 1: Search by name + state + office to get FEC candidate_id
+ * Step 2: Use candidate_id to fetch campaign finance data
+ * 
+ * IMPORTANT: FEC does NOT use bioguide IDs - they have their own identity system
+ */
+async function fetchFECData(name: string, state: string, chamber: string, apiKey: string) {
   try {
-    const url = new URL(`${FEC_BASE}/candidates/search/`);
-    url.searchParams.set('api_key', apiKey);
-    url.searchParams.set('name', name);
-    url.searchParams.set('state', state);
-    url.searchParams.set('per_page', '5');
+    // Step 1: Resolve name → FEC candidate_id
+    // FEC uses 'H' for House, 'S' for Senate
+    const office = chamber.toLowerCase().includes('house') || chamber.toLowerCase().includes('representative') 
+      ? 'H' 
+      : 'S';
     
-    console.log(`Fetching FEC data for ${name} (${state})...`);
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      console.error(`FEC error: ${res.status}`);
+    // Clean name for search - FEC stores names differently
+    // Convert "LastName, FirstName" to "FirstName LastName" for better matching
+    let searchName = name;
+    if (name.includes(',')) {
+      const parts = name.split(',').map(p => p.trim());
+      searchName = `${parts[1]} ${parts[0]}`.replace(/\s+/g, ' ').trim();
+    }
+    
+    const searchUrl = new URL(`${FEC_BASE}/candidates/search/`);
+    searchUrl.searchParams.set('api_key', apiKey);
+    searchUrl.searchParams.set('name', searchName);
+    searchUrl.searchParams.set('state', state);
+    searchUrl.searchParams.set('office', office);
+    searchUrl.searchParams.set('is_active_candidate', 'true');
+    searchUrl.searchParams.set('per_page', '5');
+    searchUrl.searchParams.set('sort', '-election_years');
+    
+    console.log(`FEC Step 1: Searching for candidate "${searchName}" (${state}, ${office})...`);
+    const searchRes = await fetch(searchUrl.toString());
+    
+    if (!searchRes.ok) {
+      console.error(`FEC search error: ${searchRes.status}`);
       return null;
     }
     
-    const data = await res.json();
-    return data.results?.[0] || null;
+    const searchData = await searchRes.json();
+    const candidate = searchData.results?.[0];
+    
+    if (!candidate?.candidate_id) {
+      console.log(`FEC: No candidate found for "${searchName}" in ${state}`);
+      return null;
+    }
+    
+    console.log(`FEC Step 1 Success: Found candidate_id ${candidate.candidate_id}`);
+    
+    // Step 2: Get campaign finance totals using the resolved candidate_id
+    const totalsUrl = new URL(`${FEC_BASE}/candidates/totals/`);
+    totalsUrl.searchParams.set('api_key', apiKey);
+    totalsUrl.searchParams.set('candidate_id', candidate.candidate_id);
+    totalsUrl.searchParams.set('per_page', '1');
+    totalsUrl.searchParams.set('sort', '-cycle');
+    
+    console.log(`FEC Step 2: Fetching totals for ${candidate.candidate_id}...`);
+    const totalsRes = await fetch(totalsUrl.toString());
+    
+    let totals = null;
+    if (totalsRes.ok) {
+      const totalsData = await totalsRes.json();
+      totals = totalsData.results?.[0] || null;
+    }
+    
+    // Return combined data
+    return {
+      candidate_id: candidate.candidate_id,
+      name: candidate.name,
+      party: candidate.party,
+      office: candidate.office_full,
+      office_code: candidate.office,
+      state: candidate.state,
+      district: candidate.district,
+      cycles: candidate.election_years || candidate.cycles,
+      incumbent_challenge: candidate.incumbent_challenge_full,
+      // Financial totals (if available)
+      receipts: totals?.receipts || null,
+      disbursements: totals?.disbursements || null,
+      cash_on_hand: totals?.cash_on_hand_end_period || null,
+      debts: totals?.debts_owed_by_committee || null,
+      individual_contributions: totals?.individual_contributions || null,
+      last_cash_on_hand_end_period: totals?.last_cash_on_hand_end_period || null,
+      coverage_end_date: totals?.coverage_end_date || null,
+      cycle: totals?.cycle || null,
+    };
   } catch (error) {
-    console.error('Error fetching FEC data:', error);
+    console.error('Error in FEC two-step resolution:', error);
     return null;
   }
 }
@@ -184,6 +248,7 @@ serve(async (req) => {
     const bioguideId = sanitizeString(url.searchParams.get('bioguide') || '', 20);
     const entityName = sanitizeString(url.searchParams.get('name') || '', 200);
     const entityState = sanitizeString(url.searchParams.get('state') || '', 50);
+    const entityChamber = sanitizeString(url.searchParams.get('chamber') || 'Senate', 50);
 
     if (!bioguideId) {
       return new Response(
@@ -192,7 +257,7 @@ serve(async (req) => {
       );
     }
 
-    // Validate bioguide ID format (relaxed for OpenStates IDs)
+    // Validate bioguide ID length
     if (bioguideId.length > 20) {
       return new Response(
         JSON.stringify({ error: 'Invalid bioguide parameter' }),
@@ -211,13 +276,19 @@ serve(async (req) => {
       );
     }
 
-    // Fetch all data in parallel
-    const [member, bills, votes, funding, quotes] = await Promise.all([
-      fetchMemberDetails(bioguideId, congressApiKey),
+    // First, fetch member details to get accurate role/chamber info
+    const member = await fetchMemberDetails(bioguideId, congressApiKey);
+    
+    // Determine chamber from member data or fallback to passed value
+    const resolvedChamber = member?.terms?.[member.terms.length - 1]?.chamber || entityChamber;
+
+    // Fetch remaining data in parallel
+    const [bills, votes, funding, quotes] = await Promise.all([
       fetchSponsoredBills(bioguideId, congressApiKey),
-      fetchMemberVotes(bioguideId, congressApiKey, ''),
+      fetchMemberVotes(bioguideId, congressApiKey),
+      // Use two-step FEC resolution with name + state + chamber
       entityName && entityState && fecApiKey 
-        ? fetchFECData(entityName, entityState, fecApiKey)
+        ? fetchFECData(entityName, entityState, resolvedChamber, fecApiKey)
         : Promise.resolve(null),
       entityName && govInfoApiKey
         ? fetchCongressionalRecordQuotes(entityName, govInfoApiKey)
@@ -234,8 +305,8 @@ serve(async (req) => {
       quotes,
       sources: [
         'Congress.gov',
-        'Federal Election Commission',
-        'GovInfo Congressional Record',
+        ...(funding ? ['Federal Election Commission (FEC)'] : []),
+        ...(quotes.length > 0 ? ['GovInfo Congressional Record'] : []),
       ],
     };
 

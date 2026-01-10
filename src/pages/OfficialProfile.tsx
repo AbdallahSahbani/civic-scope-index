@@ -105,13 +105,39 @@ export default function OfficialProfile() {
       parts.push('');
     }
 
-    // Funding
+    // Funding - Enhanced FEC data with financial totals
     if (details.funding) {
       parts.push(`FEC CAMPAIGN FINANCE DATA:`);
-      parts.push(`Candidate ID: ${details.funding.candidate_id}`);
-      parts.push(`Office: ${details.funding.office}`);
+      parts.push(`FEC Candidate ID: ${details.funding.candidate_id}`);
+      parts.push(`Office: ${details.funding.office || details.funding.office_code}`);
+      parts.push(`Party: ${details.funding.party || 'N/A'}`);
+      if (details.funding.incumbent_challenge) {
+        parts.push(`Status: ${details.funding.incumbent_challenge}`);
+      }
       if (details.funding.cycles) {
-        parts.push(`Election Cycles: ${details.funding.cycles.join(', ')}`);
+        parts.push(`Election Cycles: ${Array.isArray(details.funding.cycles) ? details.funding.cycles.join(', ') : details.funding.cycles}`);
+      }
+      if (details.funding.cycle) {
+        parts.push(`Most Recent Cycle: ${details.funding.cycle}`);
+      }
+      // Financial totals
+      if (details.funding.receipts) {
+        parts.push(`Total Receipts: $${Number(details.funding.receipts).toLocaleString()}`);
+      }
+      if (details.funding.disbursements) {
+        parts.push(`Total Disbursements: $${Number(details.funding.disbursements).toLocaleString()}`);
+      }
+      if (details.funding.cash_on_hand) {
+        parts.push(`Cash on Hand: $${Number(details.funding.cash_on_hand).toLocaleString()}`);
+      }
+      if (details.funding.individual_contributions) {
+        parts.push(`Individual Contributions: $${Number(details.funding.individual_contributions).toLocaleString()}`);
+      }
+      if (details.funding.debts) {
+        parts.push(`Debts Owed: $${Number(details.funding.debts).toLocaleString()}`);
+      }
+      if (details.funding.coverage_end_date) {
+        parts.push(`Data as of: ${details.funding.coverage_end_date}`);
       }
       parts.push('');
     }
@@ -140,8 +166,10 @@ export default function OfficialProfile() {
       const bioguide = entity?.bioguideId || id;
 
       try {
+        // Pass chamber info for correct FEC office resolution (H for House, S for Senate)
+        const chamber = entity?.role?.toLowerCase().includes('representative') ? 'House' : 'Senate';
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/entity-data?bioguide=${bioguide}&name=${encodeURIComponent(entity?.name || '')}&state=${entity?.state || ''}`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/entity-data?bioguide=${bioguide}&name=${encodeURIComponent(entity?.name || '')}&state=${entity?.state || ''}&chamber=${chamber}`,
           {
             headers: {
               'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -399,29 +427,87 @@ export default function OfficialProfile() {
                         <div className="bg-muted/50 rounded-lg p-4 mt-2">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="text-muted-foreground">Candidate ID</p>
+                              <p className="text-muted-foreground">FEC Candidate ID</p>
                               <p className="font-medium text-foreground">{details.funding.candidate_id}</p>
                             </div>
                             <div>
                               <p className="text-muted-foreground">Office</p>
-                              <p className="font-medium text-foreground">{details.funding.office || 'N/A'}</p>
+                              <p className="font-medium text-foreground">{details.funding.office || details.funding.office_code || 'N/A'}</p>
                             </div>
-                            {details.funding.cycles && (
-                              <div className="col-span-2">
-                                <p className="text-muted-foreground">Election Cycles</p>
-                                <p className="font-medium text-foreground">
-                                  {details.funding.cycles.join(', ')}
-                                </p>
+                            {details.funding.incumbent_challenge && (
+                              <div>
+                                <p className="text-muted-foreground">Status</p>
+                                <p className="font-medium text-foreground">{details.funding.incumbent_challenge}</p>
+                              </div>
+                            )}
+                            {details.funding.cycle && (
+                              <div>
+                                <p className="text-muted-foreground">Cycle</p>
+                                <p className="font-medium text-foreground">{details.funding.cycle}</p>
                               </div>
                             )}
                           </div>
+                          
+                          {/* Financial Totals */}
+                          {(details.funding.receipts || details.funding.disbursements || details.funding.cash_on_hand) && (
+                            <div className="mt-4 pt-4 border-t border-border">
+                              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">Financial Summary</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+                                {details.funding.receipts && (
+                                  <div>
+                                    <p className="text-muted-foreground">Total Receipts</p>
+                                    <p className="font-medium text-foreground">${Number(details.funding.receipts).toLocaleString()}</p>
+                                  </div>
+                                )}
+                                {details.funding.disbursements && (
+                                  <div>
+                                    <p className="text-muted-foreground">Disbursements</p>
+                                    <p className="font-medium text-foreground">${Number(details.funding.disbursements).toLocaleString()}</p>
+                                  </div>
+                                )}
+                                {details.funding.cash_on_hand && (
+                                  <div>
+                                    <p className="text-muted-foreground">Cash on Hand</p>
+                                    <p className="font-medium text-foreground">${Number(details.funding.cash_on_hand).toLocaleString()}</p>
+                                  </div>
+                                )}
+                                {details.funding.individual_contributions && (
+                                  <div>
+                                    <p className="text-muted-foreground">Individual Contributions</p>
+                                    <p className="font-medium text-foreground">${Number(details.funding.individual_contributions).toLocaleString()}</p>
+                                  </div>
+                                )}
+                                {details.funding.debts && Number(details.funding.debts) > 0 && (
+                                  <div>
+                                    <p className="text-muted-foreground">Debts Owed</p>
+                                    <p className="font-medium text-foreground">${Number(details.funding.debts).toLocaleString()}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {details.funding.coverage_end_date && (
+                                <p className="text-xs text-muted-foreground/70 mt-3">
+                                  Data as of {details.funding.coverage_end_date}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          
+                          {details.funding.cycles && (
+                            <div className="mt-3 pt-3 border-t border-border">
+                              <p className="text-muted-foreground text-sm">Election Cycles</p>
+                              <p className="font-medium text-foreground text-sm">
+                                {Array.isArray(details.funding.cycles) ? details.funding.cycles.slice(0, 5).join(', ') : details.funding.cycles}
+                              </p>
+                            </div>
+                          )}
+                          
                           <p className="text-xs text-muted-foreground/70 mt-3">
                             Source: Federal Election Commission (fec.gov)
                           </p>
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground py-2">
-                          No FEC campaign finance data available.
+                          No FEC campaign finance data available for this official.
                         </p>
                       )}
                     </AccordionContent>
