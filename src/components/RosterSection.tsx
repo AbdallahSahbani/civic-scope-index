@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRoster } from '@/hooks/useRoster';
 import { RosterCard } from '@/components/RosterCard';
 import { RosterFilters } from '@/components/RosterFilters';
+import { RosterSearchChat } from '@/components/RosterSearchChat';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -36,6 +37,14 @@ export function RosterSection() {
             </p>
           )}
         </div>
+
+        {/* AI Search Chat */}
+        <RosterSearchChat 
+          onApplyFilters={(filters) => {
+            if (filters.state) setState(filters.state);
+            if (filters.chamber) setChamber(filters.chamber as 'all' | 'Federal' | 'State');
+          }}
+        />
 
         {/* Filter Panel */}
         <RosterFilters
