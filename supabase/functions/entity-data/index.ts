@@ -89,15 +89,47 @@ async function fetchMemberVotes(bioguideId: string, apiKey: string) {
   }
 }
 
+// State name to abbreviation map for FEC API (requires 2-letter codes)
+const STATE_ABBREV: Record<string, string> = {
+  'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR', 'california': 'CA',
+  'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE', 'florida': 'FL', 'georgia': 'GA',
+  'hawaii': 'HI', 'idaho': 'ID', 'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA',
+  'kansas': 'KS', 'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+  'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS', 'missouri': 'MO',
+  'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+  'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH',
+  'oklahoma': 'OK', 'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+  'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT', 'vermont': 'VT',
+  'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY',
+  'district of columbia': 'DC', 'puerto rico': 'PR', 'guam': 'GU', 'virgin islands': 'VI',
+  'american samoa': 'AS', 'northern mariana islands': 'MP',
+};
+
+function getStateAbbrev(state: string): string {
+  if (!state) return '';
+  // Already an abbreviation
+  if (state.length === 2) return state.toUpperCase();
+  // Look up full name
+  return STATE_ABBREV[state.toLowerCase()] || state;
+}
+
 /**
  * FEC Two-Step Resolution:
  * Step 1: Search by name + state + office to get FEC candidate_id
  * Step 2: Use candidate_id to fetch campaign finance data
  * 
  * IMPORTANT: FEC does NOT use bioguide IDs - they have their own identity system
+ * IMPORTANT: FEC requires 2-letter state codes, not full state names
  */
 async function fetchFECData(name: string, state: string, chamber: string, apiKey: string) {
   try {
+    // Convert state to 2-letter abbreviation (FEC requires this)
+    const stateAbbrev = getStateAbbrev(state);
+    if (!stateAbbrev) {
+      console.log(`FEC: Cannot resolve state abbreviation for "${state}"`);
+      return null;
+    }
+    
     // Step 1: Resolve name → FEC candidate_id
     // FEC uses 'H' for House, 'S' for Senate
     const office = chamber.toLowerCase().includes('house') || chamber.toLowerCase().includes('representative') 
@@ -111,29 +143,42 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
       const parts = name.split(',').map(p => p.trim());
       searchName = `${parts[1]} ${parts[0]}`.replace(/\s+/g, ' ').trim();
     }
+    // Also try just last name for better matching
+    const lastName = name.includes(',') ? name.split(',')[0].trim() : name.split(' ').pop() || name;
     
     const searchUrl = new URL(`${FEC_BASE}/candidates/search/`);
     searchUrl.searchParams.set('api_key', apiKey);
     searchUrl.searchParams.set('name', searchName);
-    searchUrl.searchParams.set('state', state);
+    searchUrl.searchParams.set('state', stateAbbrev);
     searchUrl.searchParams.set('office', office);
     searchUrl.searchParams.set('is_active_candidate', 'true');
     searchUrl.searchParams.set('per_page', '5');
     searchUrl.searchParams.set('sort', '-election_years');
     
-    console.log(`FEC Step 1: Searching for candidate "${searchName}" (${state}, ${office})...`);
-    const searchRes = await fetch(searchUrl.toString());
+    console.log(`FEC Step 1: Searching for candidate "${searchName}" (${stateAbbrev}, ${office})...`);
+    let searchRes = await fetch(searchUrl.toString());
     
     if (!searchRes.ok) {
       console.error(`FEC search error: ${searchRes.status}`);
       return null;
     }
     
-    const searchData = await searchRes.json();
-    const candidate = searchData.results?.[0];
+    let searchData = await searchRes.json();
+    let candidate = searchData.results?.[0];
+    
+    // If no result, try with just last name
+    if (!candidate?.candidate_id && lastName !== searchName) {
+      console.log(`FEC: No result for "${searchName}", trying last name "${lastName}"...`);
+      searchUrl.searchParams.set('name', lastName);
+      searchRes = await fetch(searchUrl.toString());
+      if (searchRes.ok) {
+        searchData = await searchRes.json();
+        candidate = searchData.results?.[0];
+      }
+    }
     
     if (!candidate?.candidate_id) {
-      console.log(`FEC: No candidate found for "${searchName}" in ${state}`);
+      console.log(`FEC: No candidate found for "${searchName}" or "${lastName}" in ${stateAbbrev}`);
       return null;
     }
     
