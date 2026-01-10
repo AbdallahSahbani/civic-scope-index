@@ -24,42 +24,67 @@ interface RosterEntity {
 }
 
 async function fetchCongressMembers(apiKey: string): Promise<RosterEntity[]> {
+  const allMembers: RosterEntity[] = [];
+  const LIMIT = 250;
+  let offset = 0;
+  let totalCount = 0;
+  
   try {
-    const url = new URL(`${CONGRESS_BASE}/member`);
-    url.searchParams.set('api_key', apiKey);
-    url.searchParams.set('limit', '250');
-    url.searchParams.set('currentMember', 'true');
-
-    console.log('Fetching Congress members...');
-    const res = await fetch(url.toString());
+    console.log('Fetching all Congress members with pagination...');
     
-    if (!res.ok) {
-      console.error(`Congress API error: ${res.status}`);
-      return [];
-    }
+    // First request to get total count
+    do {
+      const url = new URL(`${CONGRESS_BASE}/member`);
+      url.searchParams.set('api_key', apiKey);
+      url.searchParams.set('limit', LIMIT.toString());
+      url.searchParams.set('offset', offset.toString());
+      url.searchParams.set('currentMember', 'true');
 
-    const data = await res.json();
-    
-    if (!data.members || !Array.isArray(data.members)) {
-      console.error('Invalid Congress API response structure');
-      return [];
-    }
+      console.log(`Fetching Congress members: offset=${offset}, limit=${LIMIT}`);
+      const res = await fetch(url.toString());
+      
+      if (!res.ok) {
+        console.error(`Congress API error: ${res.status}`);
+        break;
+      }
 
-    return data.members.map((m: any) => ({
-      id: m.bioguideId || `congress-${m.name}`,
-      name: m.name || 'Unknown',
-      role: m.terms?.[0]?.chamber === 'House of Representatives' ? 'U.S. Representative' : 'U.S. Senator',
-      chamber: 'Federal' as const,
-      party: m.partyName || m.party || 'Unknown',
-      state: m.state || 'Unknown',
-      district: m.district?.toString(),
-      source: 'congress' as const,
-      bioguideId: m.bioguideId,
-      photoUrl: m.depiction?.imageUrl || null,
-    }));
+      const data = await res.json();
+      
+      // Get total count from pagination
+      if (data.pagination?.count) {
+        totalCount = data.pagination.count;
+        console.log(`Total Congress members available: ${totalCount}`);
+      }
+      
+      if (!data.members || !Array.isArray(data.members)) {
+        console.error('Invalid Congress API response structure');
+        break;
+      }
+
+      const members = data.members.map((m: any) => ({
+        id: m.bioguideId || `congress-${m.name}`,
+        name: m.name || 'Unknown',
+        role: m.terms?.[0]?.chamber === 'House of Representatives' ? 'U.S. Representative' : 'U.S. Senator',
+        chamber: 'Federal' as const,
+        party: m.partyName || m.party || 'Unknown',
+        state: m.state || 'Unknown',
+        district: m.district?.toString(),
+        source: 'congress' as const,
+        bioguideId: m.bioguideId,
+        photoUrl: m.depiction?.imageUrl || null,
+      }));
+
+      allMembers.push(...members);
+      offset += LIMIT;
+      
+      // Continue if there are more members to fetch
+    } while (offset < totalCount && totalCount > 0);
+
+    console.log(`Fetched ${allMembers.length} total Congress members`);
+    return allMembers;
   } catch (error) {
     console.error('Error fetching Congress members:', error);
-    return [];
+    return allMembers; // Return what we got so far
   }
 }
 
