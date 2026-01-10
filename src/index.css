@@ -2,95 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Civic Roster Design System
+   Institutional, government-adjacent aesthetic
+   All colors in HSL format
 */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core palette - muted, institutional */
+    --background: 210 20% 98%;
+    --foreground: 220 20% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 220 20% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - deep navy */
+    --primary: 220 35% 22%;
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - warm slate */
+    --secondary: 215 15% 92%;
+    --secondary-foreground: 220 20% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted surfaces */
+    --muted: 210 15% 95%;
+    --muted-foreground: 215 12% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - subtle blue */
+    --accent: 215 25% 88%;
+    --accent-foreground: 220 35% 22%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 215 20% 88%;
+    --input: 215 20% 88%;
+    --ring: 220 35% 22%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Civic Roster specific tokens */
+    --civic-navy: 220 45% 18%;
+    --civic-slate: 215 15% 40%;
+    --civic-paper: 45 30% 97%;
+    
+    /* Patriotic accents - very subtle */
+    --civic-blue: 220 80% 45%;
+    --civic-red: 0 70% 48%;
+    --civic-white: 0 0% 100%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Badge colors */
+    --badge-official: 220 60% 94%;
+    --badge-official-foreground: 220 45% 30%;
+    --badge-journalist: 45 60% 94%;
+    --badge-journalist-foreground: 45 50% 30%;
+    --badge-media: 180 40% 94%;
+    --badge-media-foreground: 180 35% 30%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar - institutional */
+    --sidebar-background: 210 15% 97%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 220 35% 22%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 215 20% 93%;
+    --sidebar-accent-foreground: 220 20% 25%;
+    --sidebar-border: 215 20% 90%;
+    --sidebar-ring: 220 35% 22%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* No dark mode per requirements */
+    --background: 210 20% 98%;
+    --foreground: 220 20% 15%;
   }
 }
 
@@ -99,7 +87,95 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Tricolor divider - subtle patriotic accent */
+  .tricolor-divider {
+    height: 2px;
+    background: linear-gradient(
+      to right,
+      hsl(var(--civic-blue)) 0%,
+      hsl(var(--civic-blue)) 33%,
+      hsl(var(--civic-white)) 33%,
+      hsl(var(--civic-white)) 66%,
+      hsl(var(--civic-red)) 66%,
+      hsl(var(--civic-red)) 100%
+    );
+    opacity: 0.4;
+  }
+
+  /* Entity initials avatar */
+  .initials-avatar {
+    @apply flex items-center justify-center rounded-full font-medium;
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: hsl(var(--secondary));
+    color: hsl(var(--civic-slate));
+  }
+
+  /* Filter card styling */
+  .filter-panel {
+    @apply rounded-lg border bg-card p-6;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  }
+
+  /* Entity card hover state */
+  .entity-card {
+    @apply rounded-lg border bg-card p-5 transition-all duration-200 cursor-pointer;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  }
+
+  .entity-card:hover {
+    box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.08);
+    border-color: hsl(var(--primary) / 0.2);
+    transform: translateY(-1px);
+  }
+
+  /* Disclosure banner */
+  .disclosure-banner {
+    @apply rounded border-l-4 bg-muted/50 p-4 text-sm;
+    border-left-color: hsl(var(--civic-slate));
+  }
+
+  /* Metric section */
+  .metric-section {
+    @apply rounded-lg border bg-card p-5;
+  }
+
+  /* Legal page styling */
+  .legal-content h2 {
+    @apply text-xl font-semibold mt-8 mb-4;
+    font-family: 'Source Serif 4', Georgia, serif;
+  }
+
+  .legal-content p {
+    @apply text-muted-foreground leading-relaxed mb-4;
+  }
+
+  .legal-content ul {
+    @apply list-disc pl-6 space-y-2 text-muted-foreground;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .font-serif {
+    font-family: 'Source Serif 4', Georgia, serif;
   }
 }
