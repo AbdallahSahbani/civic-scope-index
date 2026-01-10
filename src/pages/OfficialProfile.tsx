@@ -225,8 +225,22 @@ export default function OfficialProfile() {
             {/* Profile Header */}
             <div className="bg-card border border-border rounded-lg p-6 mb-8">
               <div className="flex items-start gap-6">
-                <div className="flex items-center justify-center h-20 w-20 rounded-full bg-muted text-muted-foreground font-serif font-bold text-2xl shrink-0 border border-border">
-                  {initials}
+                {/* Photo Avatar with Initials Fallback */}
+                <div className="relative h-20 w-20 rounded-full bg-muted shrink-0 border border-border overflow-hidden">
+                  {(entity.photoUrl || details?.member?.depiction?.imageUrl) ? (
+                    <img 
+                      src={entity.photoUrl || details?.member?.depiction?.imageUrl} 
+                      alt={`Official portrait of ${entity.name}`}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`absolute inset-0 flex items-center justify-center text-muted-foreground font-serif font-bold text-2xl ${(entity.photoUrl || details?.member?.depiction?.imageUrl) ? 'hidden' : ''}`}>
+                    {initials}
+                  </div>
                 </div>
 
                 <div className="flex-1">

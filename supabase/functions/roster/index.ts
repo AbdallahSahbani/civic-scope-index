@@ -19,6 +19,7 @@ interface RosterEntity {
   district?: string;
   source: 'congress' | 'openstates';
   bioguideId?: string;
+  photoUrl?: string;
 }
 
 async function fetchCongressMembers(apiKey: string): Promise<RosterEntity[]> {
@@ -53,6 +54,7 @@ async function fetchCongressMembers(apiKey: string): Promise<RosterEntity[]> {
       district: m.district?.toString(),
       source: 'congress' as const,
       bioguideId: m.bioguideId,
+      photoUrl: m.depiction?.imageUrl || null,
     }));
   } catch (error) {
     console.error('Error fetching Congress members:', error);
@@ -90,6 +92,7 @@ async function fetchOpenStatesLegislators(apiKey: string): Promise<RosterEntity[
       state: p.jurisdiction?.name || 'Unknown',
       district: p.current_role?.district,
       source: 'openstates' as const,
+      photoUrl: p.image || null,
     }));
   } catch (error) {
     console.error('Error fetching OpenStates legislators:', error);

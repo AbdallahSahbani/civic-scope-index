@@ -12,6 +12,7 @@ export interface RosterEntity {
   district?: string;
   source: EntitySource;
   bioguideId?: string;
+  photoUrl?: string;        // Official portrait URL from Congress.gov
 }
 
 export interface RosterResponse {

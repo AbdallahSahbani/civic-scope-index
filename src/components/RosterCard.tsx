@@ -54,9 +54,23 @@ export function RosterCard({ entity }: RosterCardProps) {
       }}
     >
       <div className="flex items-center gap-4">
-        {/* Initials Avatar */}
-        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted text-muted-foreground font-serif font-semibold text-base shrink-0 border border-border">
-          {initials}
+        {/* Photo Avatar with Initials Fallback */}
+        <div className="relative h-12 w-12 rounded-full bg-muted shrink-0 border border-border overflow-hidden">
+          {entity.photoUrl ? (
+            <img 
+              src={entity.photoUrl} 
+              alt={`Official portrait of ${entity.name}`}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                // Hide image on error, show initials
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+          ) : null}
+          <div className={`absolute inset-0 flex items-center justify-center text-muted-foreground font-serif font-semibold text-base ${entity.photoUrl ? 'hidden' : ''}`}>
+            {initials}
+          </div>
         </div>
 
         {/* Content */}
