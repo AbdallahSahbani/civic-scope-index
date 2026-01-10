@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkUSAOnly, createGeoBlockedResponse, sanitizeString, validateBioguideId, validateState } from "../_shared/geo-restrict.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -172,15 +173,29 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // USA-only geo-restriction
+  const geoCheck = checkUSAOnly(req);
+  if (!geoCheck.allowed) {
+    return createGeoBlockedResponse(corsHeaders);
+  }
+
   try {
     const url = new URL(req.url);
-    const bioguideId = url.searchParams.get('bioguide');
-    const entityName = url.searchParams.get('name');
-    const entityState = url.searchParams.get('state');
+    const bioguideId = sanitizeString(url.searchParams.get('bioguide') || '', 20);
+    const entityName = sanitizeString(url.searchParams.get('name') || '', 200);
+    const entityState = sanitizeString(url.searchParams.get('state') || '', 50);
 
     if (!bioguideId) {
       return new Response(
         JSON.stringify({ error: 'Missing bioguide parameter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate bioguide ID format (relaxed for OpenStates IDs)
+    if (bioguideId.length > 20) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid bioguide parameter' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

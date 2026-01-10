@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkUSAOnly, createGeoBlockedResponse, sanitizeString } from "../_shared/geo-restrict.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,8 +29,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // USA-only geo-restriction
+  const geoCheck = checkUSAOnly(req);
+  if (!geoCheck.allowed) {
+    return createGeoBlockedResponse(corsHeaders);
+  }
+
   try {
-    const { interests, bills, votes } = await req.json();
+    const body = await req.json();
+    
+    // Input validation
+    let interests = body.interests;
+    const bills = body.bills;
+    const votes = body.votes;
 
     if (!interests || !Array.isArray(interests)) {
       return new Response(
@@ -37,6 +49,9 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Limit interests to 10 and sanitize each
+    interests = interests.slice(0, 10).map((i: any) => sanitizeString(String(i), 100));
 
     // Match user interests against bills and votes (descriptive only)
     const matches: MatchResult[] = interests.map((interest: string) => {
@@ -52,8 +67,8 @@ serve(async (req) => {
           if (title.includes(interestLower)) {
             relevantItems.push({
               type: 'bill',
-              title: bill.title,
-              description: `${bill.type}${bill.number} - Congress ${bill.congress}`,
+              title: sanitizeString(bill.title || '', 200),
+              description: `${sanitizeString(bill.type || '', 20)}${bill.number} - Congress ${bill.congress}`,
               date: bill.latestAction?.actionDate,
               url: bill.url,
             });
@@ -70,8 +85,8 @@ serve(async (req) => {
           if (title.includes(interestLower)) {
             relevantItems.push({
               type: 'vote',
-              title: vote.title,
-              description: `${vote.type === 'cosponsored' ? 'Cosponsored' : 'Voted on'}: ${vote.billNumber}`,
+              title: sanitizeString(vote.title || '', 200),
+              description: `${vote.type === 'cosponsored' ? 'Cosponsored' : 'Voted on'}: ${sanitizeString(vote.billNumber || '', 20)}`,
               date: vote.latestAction?.actionDate,
               url: vote.url,
             });
