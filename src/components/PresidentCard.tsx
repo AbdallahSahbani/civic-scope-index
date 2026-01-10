@@ -11,7 +11,7 @@ const CURRENT_PRESIDENT = {
   party: 'Republican',
   state: 'Florida',
   photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Donald_Trump_official_portrait.jpg/440px-Donald_Trump_official_portrait.jpg',
-  term: '47th President (2025–present)',
+  term: '47th President • Elected 2024',
 };
 
 function getInitials(name: string): string {
