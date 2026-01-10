@@ -4,14 +4,17 @@ import { RosterCard } from '@/components/RosterCard';
 import { RosterFilters } from '@/components/RosterFilters';
 import { RosterSearchChat } from '@/components/RosterSearchChat';
 import { PresidentCard } from '@/components/PresidentCard';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { VicePresidentCard } from '@/components/VicePresidentCard';
+import { Loader2, AlertCircle, RefreshCw, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Toggle } from '@/components/ui/toggle';
 
 export function RosterSection() {
   const [search, setSearch] = useState('');
   const [chamber, setChamber] = useState<'all' | 'Federal' | 'State'>('all');
   const [state, setState] = useState('ALL');
   const [party, setParty] = useState('all');
+  const [gridView, setGridView] = useState(false);
 
   const { entities, loading, error, updatedAt, totalCount, refetch } = useRoster({
     search,
@@ -59,10 +62,13 @@ export function RosterSection() {
           onPartyChange={setParty}
         />
 
-        {/* Presidential Slot - Always visible regardless of filters */}
-        <PresidentCard />
+        {/* Executive Leadership Slots - Always visible regardless of filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <PresidentCard />
+          <VicePresidentCard />
+        </div>
 
-        {/* Results Count & Refresh */}
+        {/* Results Count, View Toggle & Refresh */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {loading ? (
@@ -74,16 +80,39 @@ export function RosterSection() {
               `${totalCount} ${totalCount === 1 ? 'official' : 'officials'} found`
             )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={refetch}
-            disabled={loading}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* View Toggle */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <Toggle 
+                pressed={!gridView} 
+                onPressedChange={() => setGridView(false)}
+                size="sm"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                aria-label="List view"
+              >
+                <List className="h-4 w-4" />
+              </Toggle>
+              <Toggle 
+                pressed={gridView} 
+                onPressedChange={() => setGridView(true)}
+                size="sm"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm"
+                aria-label="Grid view"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Toggle>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={refetch}
+              disabled={loading}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Error State */}
@@ -126,15 +155,18 @@ export function RosterSection() {
           </div>
         )}
 
-        {/* Entity List */}
+        {/* Entity List/Grid */}
         {!loading && !error && (
-          <div className="space-y-3">
+          <div className={gridView 
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" 
+            : "space-y-3"
+          }>
             {entities.length > 0 ? (
               entities.map((entity) => (
-                <RosterCard key={entity.id} entity={entity} />
+                <RosterCard key={entity.id} entity={entity} compact={gridView} />
               ))
             ) : (
-              <div className="text-center py-12">
+              <div className="text-center py-12 col-span-full">
                 <p className="text-muted-foreground">
                   No officials match your current filters.
                 </p>

@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ChatDrawer } from '@/components/ChatDrawer';
-import { InterestMatcher } from '@/components/InterestMatcher';
+import { ProfileChat } from '@/components/ProfileChat';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -596,11 +596,10 @@ export default function OfficialProfile() {
                   </AccordionItem>
                 </Accordion>
 
-                {/* Interest Matcher */}
-                <InterestMatcher 
+                {/* Profile Chat - NLP-powered Q&A */}
+                <ProfileChat 
                   entityName={entity.name}
-                  bills={details.bills}
-                  votes={details.votes}
+                  contextData={contextData}
                 />
 
                 {/* Source Attribution */}
