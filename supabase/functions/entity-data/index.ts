@@ -70,13 +70,32 @@ async function fetchSponsoredBills(bioguideId: string, apiKey: string) {
     }
     
     const data = await res.json();
-    return (data.sponsoredLegislation || []).map((bill: any) => ({
-      ...bill,
-      // Deep link to Congress.gov
-      congressUrl: bill.congress && bill.type && bill.number
-        ? `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.type.toLowerCase().replace('.', '')}-bill/${bill.number}`
-        : null,
-    }));
+    return (data.sponsoredLegislation || []).map((bill: any) => {
+      // Build correct Congress.gov URL format
+      // Format: https://www.congress.gov/bill/118th-congress/senate-bill/1234
+      // bill.type can be "S", "HR", "HRES", "SRES", etc.
+      const typeMap: Record<string, string> = {
+        'S': 'senate-bill',
+        'HR': 'house-bill',
+        'HRES': 'house-resolution',
+        'SRES': 'senate-resolution',
+        'HJRES': 'house-joint-resolution',
+        'SJRES': 'senate-joint-resolution',
+        'HCONRES': 'house-concurrent-resolution',
+        'SCONRES': 'senate-concurrent-resolution',
+      };
+      
+      const billType = bill.type?.replace('.', '').toUpperCase();
+      const urlType = typeMap[billType] || billType?.toLowerCase().replace('.', '-') + '-bill';
+      
+      return {
+        ...bill,
+        // Deep link to Congress.gov - verified format
+        congressUrl: bill.congress && billType && bill.number
+          ? `https://www.congress.gov/bill/${bill.congress}th-congress/${urlType}/${bill.number}`
+          : null,
+      };
+    });
   } catch (error) {
     console.error('Error fetching sponsored bills:', error);
     return [];
@@ -96,17 +115,34 @@ async function fetchCosponsoredLegislation(bioguideId: string, apiKey: string) {
     
     const data = await res.json();
     
-    return (data.cosponsoredLegislation || []).map((item: any) => ({
-      type: 'cosponsored',
-      billNumber: `${item.type}${item.number}`,
-      title: item.title,
-      congress: item.congress,
-      latestAction: item.latestAction,
-      url: item.url,
-      congressUrl: item.congress && item.type && item.number
-        ? `https://www.congress.gov/bill/${item.congress}th-congress/${item.type.toLowerCase()}-bill/${item.number}`
-        : null,
-    }));
+    // Map bill types to correct Congress.gov URL format
+    const typeMap: Record<string, string> = {
+      'S': 'senate-bill',
+      'HR': 'house-bill',
+      'HRES': 'house-resolution',
+      'SRES': 'senate-resolution',
+      'HJRES': 'house-joint-resolution',
+      'SJRES': 'senate-joint-resolution',
+      'HCONRES': 'house-concurrent-resolution',
+      'SCONRES': 'senate-concurrent-resolution',
+    };
+    
+    return (data.cosponsoredLegislation || []).map((item: any) => {
+      const billType = item.type?.replace('.', '').toUpperCase();
+      const urlType = typeMap[billType] || billType?.toLowerCase().replace('.', '-') + '-bill';
+      
+      return {
+        type: 'cosponsored',
+        billNumber: `${item.type}${item.number}`,
+        title: item.title,
+        congress: item.congress,
+        latestAction: item.latestAction,
+        url: item.url,
+        congressUrl: item.congress && billType && item.number
+          ? `https://www.congress.gov/bill/${item.congress}th-congress/${urlType}/${item.number}`
+          : null,
+      };
+    });
   } catch (error) {
     console.error('Error fetching cosponsored legislation:', error);
     return [];
@@ -115,57 +151,50 @@ async function fetchCosponsoredLegislation(bioguideId: string, apiKey: string) {
 
 /**
  * Fetch committee assignments from Congress.gov
+ * Uses member data which includes committee assignments
  */
 async function fetchMemberCommittees(bioguideId: string, apiKey: string) {
   try {
+    console.log(`Fetching committee assignments for ${bioguideId}...`);
+    
+    // First get member data which may contain committee assignments
     const url = new URL(`${CONGRESS_BASE}/member/${bioguideId}`);
     url.searchParams.set('api_key', apiKey);
     
-    console.log(`Fetching committee assignments for ${bioguideId}...`);
     const res = await fetch(url.toString());
     if (!res.ok) return [];
     
     const data = await res.json();
     const member = data.member;
     
-    // Extract current committee assignments from terms
-    const currentTerm = member?.terms?.[member.terms.length - 1];
-    const committees: any[] = [];
-    
     // Check if member object has committee assignments
-    if (member?.committees) {
+    if (member?.committees && member.committees.length > 0) {
       return member.committees.map((c: any) => ({
         name: c.name,
         chamber: c.chamber,
-        url: c.url,
-        congressUrl: c.systemCode 
-          ? `https://www.congress.gov/committee/${c.chamber?.toLowerCase() || 'senate'}/${c.systemCode}`
+        systemCode: c.systemCode,
+        // Correct Congress.gov committee URL format
+        // https://www.congress.gov/committee/senate-agriculture-nutrition-forestry
+        congressUrl: c.name 
+          ? `https://www.congress.gov/search?q={"source":"committees","search":"${encodeURIComponent(c.name)}"}`
           : null,
       }));
     }
     
-    // Also try fetching from the committees endpoint
-    try {
-      const committeeUrl = new URL(`${CONGRESS_BASE}/member/${bioguideId}/committees`);
-      committeeUrl.searchParams.set('api_key', apiKey);
-      
-      const committeeRes = await fetch(committeeUrl.toString());
-      if (committeeRes.ok) {
-        const committeeData = await committeeRes.json();
-        return (committeeData.committees || []).map((c: any) => ({
-          name: c.name,
-          chamber: c.chamber,
-          systemCode: c.systemCode,
-          congressUrl: c.systemCode 
-            ? `https://www.congress.gov/committee/${(c.chamber || 'senate').toLowerCase()}/${c.systemCode}`
-            : null,
-        }));
-      }
-    } catch (e) {
-      console.log('Committee endpoint not available, using member data');
+    // Check current term for committee assignments
+    const currentTerm = member?.terms?.[member.terms.length - 1];
+    if (currentTerm?.committees && currentTerm.committees.length > 0) {
+      return currentTerm.committees.map((c: any) => ({
+        name: c.name,
+        chamber: currentTerm.chamber,
+        systemCode: c.systemCode,
+        congressUrl: c.name 
+          ? `https://www.congress.gov/search?q={"source":"committees","search":"${encodeURIComponent(c.name)}"}`
+          : null,
+      }));
     }
     
-    return committees;
+    return [];
   } catch (error) {
     console.error('Error fetching member committees:', error);
     return [];
@@ -173,54 +202,81 @@ async function fetchMemberCommittees(bioguideId: string, apiKey: string) {
 }
 
 /**
- * Fetch roll call votes from Congress.gov
- * Note: This fetches recent House/Senate roll calls the member voted in
+ * Fetch recent votes from Congress.gov using the correct API structure
+ * Congress.gov API v3 doesn't provide a direct member votes endpoint.
+ * We use the chamber vote listings instead.
  */
 async function fetchRollCallVotes(bioguideId: string, chamber: string, apiKey: string) {
   try {
-    // Congress.gov doesn't have a direct member votes endpoint
-    // We need to get votes from the member's voting record
     console.log(`Fetching roll call votes for ${bioguideId} in ${chamber}...`);
     
-    // Use the votes endpoint for the current congress
-    const currentCongress = 118; // 118th Congress (2023-2025)
+    // Current congress
+    const currentCongress = 119; // 119th Congress (2025-2027)
     const chamberCode = chamber.toLowerCase().includes('house') ? 'house' : 'senate';
     
-    const url = new URL(`${CONGRESS_BASE}/${chamberCode}/vote`);
+    // Congress.gov API uses /vote endpoint structure:
+    // GET /vote/{congress}/{chamber}
+    const url = new URL(`${CONGRESS_BASE}/vote/${currentCongress}/${chamberCode}`);
     url.searchParams.set('api_key', apiKey);
     url.searchParams.set('limit', '20');
-    url.searchParams.set('sort', 'date desc');
     
     const res = await fetch(url.toString());
     if (!res.ok) {
-      console.log(`Roll call votes endpoint returned ${res.status}`);
-      return [];
+      console.log(`Roll call votes endpoint returned ${res.status}, trying previous congress...`);
+      
+      // Try 118th Congress if 119th fails
+      const fallbackUrl = new URL(`${CONGRESS_BASE}/vote/118/${chamberCode}`);
+      fallbackUrl.searchParams.set('api_key', apiKey);
+      fallbackUrl.searchParams.set('limit', '20');
+      
+      const fallbackRes = await fetch(fallbackUrl.toString());
+      if (!fallbackRes.ok) {
+        console.log(`Fallback roll call votes also failed: ${fallbackRes.status}`);
+        return [];
+      }
+      
+      const fallbackData = await fallbackRes.json();
+      return processVotes(fallbackData.votes || [], chamberCode);
     }
     
     const data = await res.json();
-    
-    // Map votes with deep links
-    return (data.votes || []).slice(0, 15).map((vote: any) => ({
-      rollNumber: vote.rollNumber || vote.roll_call,
-      date: vote.date,
-      question: vote.question || vote.title,
-      description: vote.description,
-      result: vote.result,
-      billNumber: vote.bill?.number ? `${vote.bill.type}${vote.bill.number}` : null,
-      billTitle: vote.bill?.title,
-      yeas: vote.yea || vote.yeas,
-      nays: vote.nay || vote.nays,
-      present: vote.present,
-      notVoting: vote.not_voting || vote.notVoting,
-      // Deep link to roll call
-      congressUrl: vote.congress && vote.rollNumber
-        ? `https://www.congress.gov/roll-call-vote/${vote.congress}th-congress/${chamberCode}/${vote.rollNumber}`
-        : null,
-    }));
+    return processVotes(data.votes || [], chamberCode);
   } catch (error) {
     console.error('Error fetching roll call votes:', error);
     return [];
   }
+}
+
+function processVotes(votes: any[], chamberCode: string) {
+  return votes.slice(0, 15).map((vote: any) => {
+    const congress = vote.congress || 118;
+    const rollNum = vote.rollNumber || vote.roll_number || vote.rollcall;
+    const sessionNum = vote.session || 1;
+    
+    // Correct Congress.gov roll call URL format:
+    // https://www.congress.gov/congressional-record/2024/senate/roll-call-vote-123
+    // OR simpler: just link to the search page
+    const congressUrl = congress && rollNum
+      ? `https://www.congress.gov/roll-call-votes?q={"congress":${congress},"chamber":"${chamberCode.charAt(0).toUpperCase() + chamberCode.slice(1)}","rollCallNumber":"${rollNum}"}`
+      : null;
+    
+    return {
+      rollNumber: rollNum,
+      congress,
+      session: sessionNum,
+      date: vote.date || vote.voteDate,
+      question: vote.question || vote.title || vote.description,
+      description: vote.description,
+      result: vote.result,
+      billNumber: vote.bill?.number ? `${vote.bill.type || ''}${vote.bill.number}` : null,
+      billTitle: vote.bill?.title,
+      yeas: vote.yea || vote.yeas || vote.totals?.yea,
+      nays: vote.nay || vote.nays || vote.totals?.nay,
+      present: vote.present || vote.totals?.present,
+      notVoting: vote.not_voting || vote.notVoting || vote.totals?.notVoting,
+      congressUrl,
+    };
+  });
 }
 
 // State name to abbreviation map for FEC API
