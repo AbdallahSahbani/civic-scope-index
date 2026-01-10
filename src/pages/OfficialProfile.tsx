@@ -1,12 +1,39 @@
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { ChatDrawer } from '@/components/ChatDrawer';
+import { InterestMatcher } from '@/components/InterestMatcher';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Building, User, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
-import { RosterEntity, EntityDetailResponse, Bill } from '@/lib/schemas';
+import { 
+  ArrowLeft, 
+  Building, 
+  User, 
+  ExternalLink, 
+  Loader2, 
+  AlertCircle,
+  FileText,
+  Vote,
+  DollarSign,
+  Quote
+} from 'lucide-react';
+import { RosterEntity } from '@/lib/schemas';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+
+interface EntityDetails {
+  member: any;
+  bills: any[];
+  votes: any[];
+  funding: any;
+  quotes: any[];
+  sources: string[];
+}
 
 function getInitials(name: string): string {
   return name
@@ -31,28 +58,90 @@ export default function OfficialProfile() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Get entity from navigation state or fetch it
   const passedEntity = location.state?.entity as RosterEntity | undefined;
   
   const [entity, setEntity] = useState<RosterEntity | null>(passedEntity || null);
-  const [details, setDetails] = useState<EntityDetailResponse | null>(null);
-  const [loading, setLoading] = useState(!!passedEntity?.bioguideId);
+  const [details, setDetails] = useState<EntityDetails | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+
+  // Build context string for the AI chat from all fetched data
+  const contextData = useMemo(() => {
+    if (!details || !entity) return '';
+
+    const parts: string[] = [];
+
+    // Member info
+    if (details.member) {
+      parts.push(`MEMBER INFORMATION:`);
+      parts.push(`Name: ${entity.name}`);
+      parts.push(`Role: ${entity.role}`);
+      parts.push(`Party: ${entity.party}`);
+      parts.push(`State: ${entity.state}${entity.district ? `, District ${entity.district}` : ''}`);
+      parts.push(`Chamber: ${entity.chamber}`);
+      if (details.member.birthYear) parts.push(`Birth Year: ${details.member.birthYear}`);
+      parts.push('');
+    }
+
+    // Bills
+    if (details.bills.length > 0) {
+      parts.push(`SPONSORED LEGISLATION (${details.bills.length} bills):`);
+      details.bills.slice(0, 15).forEach((bill: any) => {
+        parts.push(`- ${bill.type}${bill.number}: ${bill.title}`);
+        if (bill.latestAction) {
+          parts.push(`  Latest Action: ${bill.latestAction.text} (${bill.latestAction.actionDate})`);
+        }
+      });
+      parts.push('');
+    }
+
+    // Votes/Cosponsored
+    if (details.votes.length > 0) {
+      parts.push(`COSPONSORED LEGISLATION (${details.votes.length} items):`);
+      details.votes.slice(0, 10).forEach((vote: any) => {
+        parts.push(`- ${vote.billNumber}: ${vote.title}`);
+      });
+      parts.push('');
+    }
+
+    // Funding
+    if (details.funding) {
+      parts.push(`FEC CAMPAIGN FINANCE DATA:`);
+      parts.push(`Candidate ID: ${details.funding.candidate_id}`);
+      parts.push(`Office: ${details.funding.office}`);
+      if (details.funding.cycles) {
+        parts.push(`Election Cycles: ${details.funding.cycles.join(', ')}`);
+      }
+      parts.push('');
+    }
+
+    // Quotes
+    if (details.quotes.length > 0) {
+      parts.push(`CONGRESSIONAL RECORD APPEARANCES (${details.quotes.length} records):`);
+      details.quotes.slice(0, 5).forEach((quote: any) => {
+        parts.push(`- ${quote.title} (${quote.dateIssued})`);
+      });
+      parts.push('');
+    }
+
+    parts.push(`DATA SOURCES: ${details.sources.join(', ')}`);
+
+    return parts.join('\n');
+  }, [details, entity]);
 
   useEffect(() => {
     async function fetchDetails() {
-      if (!entity?.bioguideId) return;
+      if (!entity?.bioguideId && !id) {
+        setLoading(false);
+        return;
+      }
 
-      setLoading(true);
+      const bioguide = entity?.bioguideId || id;
+
       try {
-        const { data, error: fetchError } = await supabase.functions.invoke('entity-data', {
-          body: null,
-          headers: {},
-        });
-
-        // Use query params approach
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/entity-data?bioguide=${entity.bioguideId}&name=${encodeURIComponent(entity.name)}&state=${entity.state}`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/entity-data?bioguide=${bioguide}&name=${encodeURIComponent(entity?.name || '')}&state=${entity?.state || ''}`,
           {
             headers: {
               'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -66,16 +155,16 @@ export default function OfficialProfile() {
         setDetails(detailData);
       } catch (err) {
         console.error('Error fetching entity details:', err);
-        setError('Could not load additional details');
+        setError('Could not load official details');
       } finally {
         setLoading(false);
       }
     }
 
     fetchDetails();
-  }, [entity]);
+  }, [entity, id]);
 
-  if (!entity) {
+  if (!entity && !loading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
@@ -99,9 +188,9 @@ export default function OfficialProfile() {
     );
   }
 
-  const initials = getInitials(entity.name);
-  const partyColorClass = getPartyColor(entity.party);
-  const ChamberIcon = entity.chamber === 'Federal' ? Building : User;
+  const initials = entity ? getInitials(entity.name) : '';
+  const partyColorClass = entity ? getPartyColor(entity.party) : '';
+  const ChamberIcon = entity?.chamber === 'Federal' ? Building : User;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -121,149 +210,316 @@ export default function OfficialProfile() {
         {/* Disclosure Banner */}
         <div className="bg-muted/50 border border-border rounded-lg p-4 mb-8">
           <p className="text-sm text-muted-foreground">
-            This profile contains descriptive data derived from public government sources. 
+            This profile contains descriptive metrics derived from public data. 
             No endorsement or judgment is expressed.
           </p>
         </div>
 
-        {/* Profile Header */}
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
-          <div className="flex items-start gap-6">
-            {/* Initials Avatar */}
-            <div className="flex items-center justify-center h-20 w-20 rounded-full bg-muted text-muted-foreground font-serif font-bold text-2xl shrink-0 border border-border">
-              {initials}
-            </div>
-
-            <div className="flex-1">
-              <h1 className="text-2xl font-serif font-semibold text-foreground mb-2">
-                {entity.name}
-              </h1>
-              
-              <p className="text-lg text-muted-foreground mb-4">
-                {entity.role}
-              </p>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-sm">
-                  <ChamberIcon className="h-4 w-4 mr-1" />
-                  {entity.chamber}
-                </Badge>
-                <Badge variant="outline" className={`text-sm border ${partyColorClass}`}>
-                  {entity.party}
-                </Badge>
-                <Badge variant="outline" className="text-sm">
-                  {entity.state}{entity.district ? `-${entity.district}` : ''}
-                </Badge>
-                <Badge variant="secondary" className="text-sm">
-                  Source: {entity.source === 'congress' ? 'Congress.gov' : 'OpenStates'}
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Loading State for Details */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-3 text-muted-foreground">Loading additional details...</span>
+            <span className="ml-3 text-muted-foreground">Loading official profile...</span>
           </div>
-        )}
+        ) : entity && (
+          <>
+            {/* Profile Header */}
+            <div className="bg-card border border-border rounded-lg p-6 mb-8">
+              <div className="flex items-start gap-6">
+                <div className="flex items-center justify-center h-20 w-20 rounded-full bg-muted text-muted-foreground font-serif font-bold text-2xl shrink-0 border border-border">
+                  {initials}
+                </div>
 
-        {/* Sponsored Legislation */}
-        {details?.bills && details.bills.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-xl font-serif font-semibold text-foreground mb-4">
-              Sponsored Legislation
-            </h2>
-            <div className="space-y-3">
-              {details.bills.slice(0, 10).map((bill: Bill, index: number) => (
-                <div 
-                  key={index}
-                  className="bg-card border border-border rounded-lg p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {bill.type} {bill.number}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {bill.title}
-                      </p>
-                      {bill.latestAction && (
-                        <p className="text-xs text-muted-foreground/70 mt-2">
-                          Latest: {bill.latestAction.text} ({bill.latestAction.actionDate})
-                        </p>
-                      )}
-                    </div>
-                    {bill.url && (
-                      <a 
-                        href={bill.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:text-primary/80 shrink-0"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    )}
+                <div className="flex-1">
+                  <h1 className="text-2xl font-serif font-semibold text-foreground mb-2">
+                    {entity.name}
+                  </h1>
+                  
+                  <p className="text-lg text-muted-foreground mb-4">
+                    {entity.role}
+                  </p>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-sm">
+                      <ChamberIcon className="h-4 w-4 mr-1" />
+                      {entity.chamber}
+                    </Badge>
+                    <Badge variant="outline" className={`text-sm border ${partyColorClass}`}>
+                      {entity.party}
+                    </Badge>
+                    <Badge variant="outline" className="text-sm">
+                      {entity.state}{entity.district ? `-${entity.district}` : ''}
+                    </Badge>
+                    <Badge variant="secondary" className="text-sm">
+                      Source: {entity.source === 'congress' ? 'Congress.gov' : 'OpenStates'}
+                    </Badge>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </section>
-        )}
 
-        {/* FEC Funding Data */}
-        {details?.funding && (
-          <section className="mb-8">
-            <h2 className="text-xl font-serif font-semibold text-foreground mb-4">
-              Campaign Finance
-            </h2>
-            <div className="bg-card border border-border rounded-lg p-4">
-              <p className="text-muted-foreground">
-                FEC Candidate ID: {details.funding.candidate_id}
-              </p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
-                Source: Federal Election Commission
-              </p>
-            </div>
-          </section>
-        )}
+            {/* Error State */}
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-8 flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-destructive">Failed to load details</p>
+                  <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                </div>
+              </div>
+            )}
 
-        {/* Source Attribution */}
-        <section className="border-t border-border pt-8 mt-8">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">
-            Data Sources
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            <a 
-              href="https://www.congress.gov/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              Congress.gov <ExternalLink className="h-3 w-3" />
-            </a>
-            <span className="text-muted-foreground">•</span>
-            <a 
-              href="https://openstates.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              OpenStates <ExternalLink className="h-3 w-3" />
-            </a>
-            <span className="text-muted-foreground">•</span>
-            <a 
-              href="https://www.fec.gov/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              FEC.gov <ExternalLink className="h-3 w-3" />
-            </a>
-          </div>
-        </section>
+            {details && (
+              <div className="space-y-8">
+                {/* Data Sections in Accordion */}
+                <Accordion type="multiple" defaultValue={['bills', 'votes']} className="space-y-4">
+                  {/* Sponsored Bills */}
+                  <AccordionItem value="bills" className="border border-border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Sponsored Legislation</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {details.bills.length} bills
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {details.bills.length > 0 ? (
+                        <div className="space-y-3 pt-2">
+                          {details.bills.slice(0, 10).map((bill: any, i: number) => (
+                            <div key={i} className="bg-muted/50 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-foreground text-sm">
+                                    {bill.type}{bill.number}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {bill.title}
+                                  </p>
+                                  {bill.latestAction && (
+                                    <p className="text-xs text-muted-foreground/70 mt-2">
+                                      Latest: {bill.latestAction.text} ({bill.latestAction.actionDate})
+                                    </p>
+                                  )}
+                                </div>
+                                {bill.url && (
+                                  <a
+                                    href={bill.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:text-primary/80 shrink-0"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-2">
+                          No sponsored legislation data available.
+                        </p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Cosponsored/Votes */}
+                  <AccordionItem value="votes" className="border border-border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <Vote className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Cosponsored Legislation</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {details.votes.length} items
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {details.votes.length > 0 ? (
+                        <div className="space-y-3 pt-2">
+                          {details.votes.slice(0, 10).map((vote: any, i: number) => (
+                            <div key={i} className="bg-muted/50 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-foreground text-sm">
+                                    {vote.billNumber}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {vote.title}
+                                  </p>
+                                </div>
+                                {vote.url && (
+                                  <a
+                                    href={vote.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:text-primary/80 shrink-0"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-2">
+                          No cosponsored legislation data available.
+                        </p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* FEC Funding */}
+                  <AccordionItem value="funding" className="border border-border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Campaign Finance</span>
+                        <Badge variant="secondary" className="ml-2">FEC</Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {details.funding ? (
+                        <div className="bg-muted/50 rounded-lg p-4 mt-2">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Candidate ID</p>
+                              <p className="font-medium text-foreground">{details.funding.candidate_id}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Office</p>
+                              <p className="font-medium text-foreground">{details.funding.office || 'N/A'}</p>
+                            </div>
+                            {details.funding.cycles && (
+                              <div className="col-span-2">
+                                <p className="text-muted-foreground">Election Cycles</p>
+                                <p className="font-medium text-foreground">
+                                  {details.funding.cycles.join(', ')}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground/70 mt-3">
+                            Source: Federal Election Commission (fec.gov)
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-2">
+                          No FEC campaign finance data available.
+                        </p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Congressional Record Quotes */}
+                  <AccordionItem value="quotes" className="border border-border rounded-lg px-4">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <Quote className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Congressional Record</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {details.quotes.length} records
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {details.quotes.length > 0 ? (
+                        <div className="space-y-3 pt-2">
+                          {details.quotes.slice(0, 5).map((quote: any, i: number) => (
+                            <div key={i} className="bg-muted/50 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-foreground text-sm">
+                                    {quote.title}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {quote.dateIssued}
+                                  </p>
+                                </div>
+                                {quote.url && (
+                                  <a
+                                    href={quote.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:text-primary/80 shrink-0"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          <p className="text-xs text-muted-foreground/70 pt-2">
+                            Source: GovInfo Congressional Record (govinfo.gov)
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground py-2">
+                          No Congressional Record appearances found.
+                        </p>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                {/* Interest Matcher */}
+                <InterestMatcher 
+                  entityName={entity.name}
+                  bills={details.bills}
+                  votes={details.votes}
+                />
+
+                {/* Source Attribution */}
+                <section className="border-t border-border pt-8">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                    Data Sources
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    <a 
+                      href="https://www.congress.gov/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    >
+                      Congress.gov <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <span className="text-muted-foreground">•</span>
+                    <a 
+                      href="https://www.fec.gov/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    >
+                      FEC.gov <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <span className="text-muted-foreground">•</span>
+                    <a 
+                      href="https://www.govinfo.gov/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    >
+                      GovInfo.gov <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {/* Chat Drawer */}
+            {entity && contextData && (
+              <ChatDrawer
+                entityId={entity.id}
+                entityName={entity.name}
+                contextData={contextData}
+                isOpen={chatOpen}
+                onOpenChange={setChatOpen}
+              />
+            )}
+          </>
+        )}
       </main>
 
       <Footer />
