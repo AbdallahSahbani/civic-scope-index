@@ -20,7 +20,11 @@ import {
   Users,
   Globe,
   Link as LinkIcon,
-  Briefcase
+  Briefcase,
+  Gavel,
+  BookOpen,
+  Youtube,
+  Instagram
 } from 'lucide-react';
 import { RosterEntity } from '@/lib/schemas';
 import {
@@ -34,8 +38,10 @@ interface EntityDetails {
   member: any;
   bills: any[];
   votes: any[];
+  rollCallVotes: any[];
   funding: any;
   committees: any[];
+  memberCommittees: any[];
   lobbying: any[];
   quotes: any[];
   socialLinks: any;
@@ -79,14 +85,16 @@ function EmptyState({
   type, 
   chamber 
 }: { 
-  type: 'bills' | 'votes' | 'funding' | 'committees' | 'lobbying' | 'quotes';
+  type: 'bills' | 'votes' | 'rollCallVotes' | 'funding' | 'committees' | 'memberCommittees' | 'lobbying' | 'quotes';
   chamber?: string;
 }) {
   const messages: Record<string, string> = {
     bills: `No sponsored legislation in the selected Congress. This official may focus on cosponsoring legislation or committee work.`,
     votes: `No cosponsored legislation records available. Voting record data may be pending or not applicable to this role.`,
+    rollCallVotes: `No roll call vote records available. This may be pending or the member may not have voted recently.`,
     funding: `No FEC campaign finance data available. This may indicate a non-candidate role or data pending for the current cycle.`,
     committees: `No campaign committee data available from FEC. Committee data may be pending or not applicable.`,
+    memberCommittees: `No congressional committee assignments found. Committee data may be pending.`,
     lobbying: `No lobbying disclosure filings found referencing this official in Senate LDA records.`,
     quotes: `No Congressional Record appearances found in GovInfo. Records may be pending or indexed differently.`,
   };
@@ -133,16 +141,34 @@ export default function OfficialProfile() {
 
     // Social Links
     if (details.socialLinks) {
-      parts.push(`OFFICIAL LINKS:`);
+      parts.push(`OFFICIAL LINKS (external, self-managed accounts):`);
       if (details.socialLinks.website) {
         parts.push(`Website: ${details.socialLinks.website.url}`);
       }
       if (details.socialLinks.twitter) {
-        parts.push(`Twitter/X: @${details.socialLinks.twitter.handle}`);
+        parts.push(`X (Twitter): @${details.socialLinks.twitter.handle}`);
+      }
+      if (details.socialLinks.youtube) {
+        parts.push(`YouTube: ${details.socialLinks.youtube.channel}`);
+      }
+      if (details.socialLinks.instagram) {
+        parts.push(`Instagram: @${details.socialLinks.instagram.handle}`);
+      }
+      if (details.socialLinks.facebook) {
+        parts.push(`Facebook: ${details.socialLinks.facebook.handle}`);
       }
       if (details.socialLinks.office) {
         parts.push(`Office: ${details.socialLinks.office.address || 'N/A'}, Phone: ${details.socialLinks.office.phone || 'N/A'}`);
       }
+      parts.push('');
+    }
+
+    // Member Committees (Congressional assignments)
+    if (details.memberCommittees && details.memberCommittees.length > 0) {
+      parts.push(`COMMITTEE ASSIGNMENTS (${details.memberCommittees.length}):`);
+      details.memberCommittees.forEach((c: any) => {
+        parts.push(`- ${c.name} (${c.chamber || 'Congress'})`);
+      });
       parts.push('');
     }
 
@@ -153,6 +179,9 @@ export default function OfficialProfile() {
         parts.push(`- ${bill.type}${bill.number}: ${bill.title}`);
         if (bill.latestAction) {
           parts.push(`  Latest Action: ${bill.latestAction.text} (${bill.latestAction.actionDate})`);
+        }
+        if (bill.congressUrl) {
+          parts.push(`  Source: ${bill.congressUrl}`);
         }
       });
       parts.push('');
@@ -166,6 +195,17 @@ export default function OfficialProfile() {
       parts.push(`COSPONSORED LEGISLATION (${details.votes.length} items):`);
       details.votes.slice(0, 10).forEach((vote: any) => {
         parts.push(`- ${vote.billNumber}: ${vote.title}`);
+      });
+      parts.push('');
+    }
+
+    // Roll Call Votes
+    if (details.rollCallVotes && details.rollCallVotes.length > 0) {
+      parts.push(`ROLL CALL VOTES (${details.rollCallVotes.length} recent votes):`);
+      details.rollCallVotes.slice(0, 10).forEach((v: any) => {
+        parts.push(`- Roll #${v.rollNumber} (${v.date}): ${v.question || v.description}`);
+        if (v.result) parts.push(`  Result: ${v.result}`);
+        if (v.congressUrl) parts.push(`  Source: ${v.congressUrl}`);
       });
       parts.push('');
     }
@@ -204,22 +244,27 @@ export default function OfficialProfile() {
       parts.push('');
     }
 
-    // Committees
+    // FEC Committees (Campaign PACs)
     if (details.committees && details.committees.length > 0) {
-      parts.push(`CAMPAIGN COMMITTEES (${details.committees.length}):`);
+      parts.push(`CAMPAIGN COMMITTEES & PACs (${details.committees.length}):`);
       details.committees.forEach((c: any) => {
         parts.push(`- ${c.name} (${c.designation || c.type})`);
         if (c.treasurer_name) parts.push(`  Treasurer: ${c.treasurer_name}`);
+        if (c.fec_url) parts.push(`  Source: ${c.fec_url}`);
       });
       parts.push('');
     }
 
     // Lobbying
     if (details.lobbying && details.lobbying.length > 0) {
-      parts.push(`LOBBYING DISCLOSURES (${details.lobbying.length} filings):`);
+      parts.push(`LOBBYING DISCLOSURES (${details.lobbying.length} filings referencing this official):`);
       details.lobbying.slice(0, 5).forEach((l: any) => {
         parts.push(`- Client: ${l.client || 'Unknown'} via ${l.registrant || 'Unknown'}`);
         if (l.issues) parts.push(`  Issues: ${l.issues}`);
+        if (l.bills_referenced && l.bills_referenced.length > 0) {
+          parts.push(`  Bills Referenced: ${l.bills_referenced.join(', ')}`);
+        }
+        if (l.lda_url) parts.push(`  Source: ${l.lda_url}`);
       });
       parts.push(`Source: Senate LDA (lda.senate.gov)`);
       parts.push('');
@@ -230,6 +275,7 @@ export default function OfficialProfile() {
       parts.push(`CONGRESSIONAL RECORD APPEARANCES (${details.quotes.length} records):`);
       details.quotes.slice(0, 5).forEach((quote: any) => {
         parts.push(`- ${quote.title} (${quote.dateIssued})`);
+        if (quote.url) parts.push(`  View in Congressional Record: ${quote.url}`);
       });
       parts.push(`Source: GovInfo (govinfo.gov)`);
       parts.push('');
@@ -404,6 +450,42 @@ export default function OfficialProfile() {
                           >
                             <LinkIcon className="h-4 w-4" />
                             @{details.socialLinks.twitter.handle}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {details.socialLinks.youtube && (
+                          <a
+                            href={details.socialLinks.youtube.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                          >
+                            <Youtube className="h-4 w-4" />
+                            YouTube
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {details.socialLinks.instagram && (
+                          <a
+                            href={details.socialLinks.instagram.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                          >
+                            <Instagram className="h-4 w-4" />
+                            @{details.socialLinks.instagram.handle}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {details.socialLinks.congressProfile && (
+                          <a
+                            href={details.socialLinks.congressProfile.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                          >
+                            <Building className="h-4 w-4" />
+                            Congress.gov Profile
                             <ExternalLink className="h-3 w-3" />
                           </a>
                         )}
