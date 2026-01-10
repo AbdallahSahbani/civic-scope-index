@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import EntityProfile from "./pages/EntityProfile";
+import OfficialProfile from "./pages/OfficialProfile";
 import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 
@@ -19,6 +20,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/entity/:id" element={<EntityProfile />} />
+          <Route path="/official/:id" element={<OfficialProfile />} />
           <Route path="/legal" element={<Legal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
