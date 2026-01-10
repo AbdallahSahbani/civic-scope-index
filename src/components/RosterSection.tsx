@@ -3,6 +3,7 @@ import { useRoster } from '@/hooks/useRoster';
 import { RosterCard } from '@/components/RosterCard';
 import { RosterFilters } from '@/components/RosterFilters';
 import { RosterSearchChat } from '@/components/RosterSearchChat';
+import { PresidentCard } from '@/components/PresidentCard';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -57,6 +58,9 @@ export function RosterSection() {
           onStateChange={setState}
           onPartyChange={setParty}
         />
+
+        {/* Presidential Slot - Always visible regardless of filters */}
+        <PresidentCard />
 
         {/* Results Count & Refresh */}
         <div className="flex items-center justify-between">
