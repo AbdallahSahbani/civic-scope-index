@@ -4,7 +4,7 @@ import { RosterEntity, RosterResponse } from '@/lib/schemas';
 
 interface UseRosterOptions {
   search?: string;
-  chamber?: 'all' | 'Federal' | 'State';
+  chamber?: 'all' | 'Federal' | 'State' | 'Executive' | 'Local';
   state?: string;
   party?: string;
 }
