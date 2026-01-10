@@ -16,7 +16,11 @@ import {
   FileText,
   Vote,
   DollarSign,
-  Quote
+  Quote,
+  Users,
+  Globe,
+  Link as LinkIcon,
+  Briefcase
 } from 'lucide-react';
 import { RosterEntity } from '@/lib/schemas';
 import {
@@ -31,7 +35,10 @@ interface EntityDetails {
   bills: any[];
   votes: any[];
   funding: any;
+  committees: any[];
+  lobbying: any[];
   quotes: any[];
+  socialLinks: any;
   sources: string[];
 }
 
@@ -51,6 +58,46 @@ function getPartyColor(party: string): string {
   if (partyLower.includes('democrat')) return 'bg-blue-100 text-blue-800 border-blue-200';
   if (partyLower.includes('independent')) return 'bg-purple-100 text-purple-800 border-purple-200';
   return 'bg-muted text-muted-foreground border-border';
+}
+
+// Source link component for consistent attribution
+function SourceLink({ label, url }: { label: string; url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+    >
+      Source: {label} <ExternalLink className="h-3 w-3" />
+    </a>
+  );
+}
+
+// Empty state component with proper messaging
+function EmptyState({ 
+  type, 
+  chamber 
+}: { 
+  type: 'bills' | 'votes' | 'funding' | 'committees' | 'lobbying' | 'quotes';
+  chamber?: string;
+}) {
+  const messages: Record<string, string> = {
+    bills: `No sponsored legislation in the selected Congress. This official may focus on cosponsoring legislation or committee work.`,
+    votes: `No cosponsored legislation records available. Voting record data may be pending or not applicable to this role.`,
+    funding: `No FEC campaign finance data available. This may indicate a non-candidate role or data pending for the current cycle.`,
+    committees: `No campaign committee data available from FEC. Committee data may be pending or not applicable.`,
+    lobbying: `No lobbying disclosure filings found referencing this official in Senate LDA records.`,
+    quotes: `No Congressional Record appearances found in GovInfo. Records may be pending or indexed differently.`,
+  };
+  
+  return (
+    <div className="bg-muted/30 rounded-lg p-4 border border-dashed border-border">
+      <p className="text-sm text-muted-foreground italic">
+        {messages[type]}
+      </p>
+    </div>
+  );
 }
 
 export default function OfficialProfile() {
@@ -84,6 +131,21 @@ export default function OfficialProfile() {
       parts.push('');
     }
 
+    // Social Links
+    if (details.socialLinks) {
+      parts.push(`OFFICIAL LINKS:`);
+      if (details.socialLinks.website) {
+        parts.push(`Website: ${details.socialLinks.website.url}`);
+      }
+      if (details.socialLinks.twitter) {
+        parts.push(`Twitter/X: @${details.socialLinks.twitter.handle}`);
+      }
+      if (details.socialLinks.office) {
+        parts.push(`Office: ${details.socialLinks.office.address || 'N/A'}, Phone: ${details.socialLinks.office.phone || 'N/A'}`);
+      }
+      parts.push('');
+    }
+
     // Bills
     if (details.bills.length > 0) {
       parts.push(`SPONSORED LEGISLATION (${details.bills.length} bills):`);
@@ -93,6 +155,9 @@ export default function OfficialProfile() {
           parts.push(`  Latest Action: ${bill.latestAction.text} (${bill.latestAction.actionDate})`);
         }
       });
+      parts.push('');
+    } else {
+      parts.push(`SPONSORED LEGISLATION: No sponsored legislation in the selected Congress.`);
       parts.push('');
     }
 
@@ -105,7 +170,7 @@ export default function OfficialProfile() {
       parts.push('');
     }
 
-    // Funding - Enhanced FEC data with financial totals
+    // Funding
     if (details.funding) {
       parts.push(`FEC CAMPAIGN FINANCE DATA:`);
       parts.push(`FEC Candidate ID: ${details.funding.candidate_id}`);
@@ -114,13 +179,9 @@ export default function OfficialProfile() {
       if (details.funding.incumbent_challenge) {
         parts.push(`Status: ${details.funding.incumbent_challenge}`);
       }
-      if (details.funding.cycles) {
-        parts.push(`Election Cycles: ${Array.isArray(details.funding.cycles) ? details.funding.cycles.join(', ') : details.funding.cycles}`);
-      }
       if (details.funding.cycle) {
         parts.push(`Most Recent Cycle: ${details.funding.cycle}`);
       }
-      // Financial totals
       if (details.funding.receipts) {
         parts.push(`Total Receipts: $${Number(details.funding.receipts).toLocaleString()}`);
       }
@@ -136,15 +197,31 @@ export default function OfficialProfile() {
       if (details.funding.pac_contributions) {
         parts.push(`PAC Contributions: $${Number(details.funding.pac_contributions).toLocaleString()}`);
       }
-      if (details.funding.party_contributions) {
-        parts.push(`Party Contributions: $${Number(details.funding.party_contributions).toLocaleString()}`);
-      }
-      if (details.funding.debts) {
-        parts.push(`Debts Owed: $${Number(details.funding.debts).toLocaleString()}`);
-      }
-      if (details.funding.coverage_start_date || details.funding.coverage_end_date) {
-        parts.push(`Reporting Period: ${details.funding.coverage_start_date || 'N/A'} to ${details.funding.coverage_end_date || 'N/A'}`);
-      }
+      parts.push(`Source: FEC.gov - ${details.funding.fec_url || 'https://www.fec.gov/'}`);
+      parts.push('');
+    } else {
+      parts.push(`FEC CAMPAIGN FINANCE: No FEC data available (non-candidate role or data pending).`);
+      parts.push('');
+    }
+
+    // Committees
+    if (details.committees && details.committees.length > 0) {
+      parts.push(`CAMPAIGN COMMITTEES (${details.committees.length}):`);
+      details.committees.forEach((c: any) => {
+        parts.push(`- ${c.name} (${c.designation || c.type})`);
+        if (c.treasurer_name) parts.push(`  Treasurer: ${c.treasurer_name}`);
+      });
+      parts.push('');
+    }
+
+    // Lobbying
+    if (details.lobbying && details.lobbying.length > 0) {
+      parts.push(`LOBBYING DISCLOSURES (${details.lobbying.length} filings):`);
+      details.lobbying.slice(0, 5).forEach((l: any) => {
+        parts.push(`- Client: ${l.client || 'Unknown'} via ${l.registrant || 'Unknown'}`);
+        if (l.issues) parts.push(`  Issues: ${l.issues}`);
+      });
+      parts.push(`Source: Senate LDA (lda.senate.gov)`);
       parts.push('');
     }
 
@@ -154,6 +231,7 @@ export default function OfficialProfile() {
       details.quotes.slice(0, 5).forEach((quote: any) => {
         parts.push(`- ${quote.title} (${quote.dateIssued})`);
       });
+      parts.push(`Source: GovInfo (govinfo.gov)`);
       parts.push('');
     }
 
@@ -172,7 +250,6 @@ export default function OfficialProfile() {
       const bioguide = entity?.bioguideId || id;
 
       try {
-        // Pass chamber info for correct FEC office resolution (H for House, S for Senate)
         const chamber = entity?.role?.toLowerCase().includes('representative') ? 'House' : 'Senate';
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/entity-data?bioguide=${bioguide}&name=${encodeURIComponent(entity?.name || '')}&state=${entity?.state || ''}&chamber=${chamber}`,
@@ -242,7 +319,7 @@ export default function OfficialProfile() {
         </Button>
 
         {/* Disclosure Banner */}
-        <div className="bg-muted/50 border border-border rounded-lg p-4 mb-8">
+        <div className="bg-card/80 backdrop-blur-sm border border-border rounded-lg p-4 mb-8 shadow-sm">
           <p className="text-sm text-muted-foreground">
             This profile contains descriptive metrics derived from public data. 
             No endorsement or judgment is expressed.
@@ -256,11 +333,11 @@ export default function OfficialProfile() {
           </div>
         ) : entity && (
           <>
-            {/* Profile Header */}
-            <div className="bg-card border border-border rounded-lg p-6 mb-8">
+            {/* Profile Header - floating card style */}
+            <div className="bg-card/95 backdrop-blur-sm border border-border rounded-lg p-6 mb-8 shadow-md">
               <div className="flex items-start gap-6">
                 {/* Photo Avatar with Initials Fallback */}
-                <div className="relative h-20 w-20 rounded-full bg-muted shrink-0 border border-border overflow-hidden">
+                <div className="relative h-20 w-20 rounded-full bg-muted shrink-0 border border-border overflow-hidden shadow-sm">
                   {(entity.photoUrl || details?.member?.depiction?.imageUrl) ? (
                     <img 
                       src={entity.photoUrl || details?.member?.depiction?.imageUrl} 
@@ -298,9 +375,49 @@ export default function OfficialProfile() {
                       {entity.state}{entity.district ? `-${entity.district}` : ''}
                     </Badge>
                     <Badge variant="secondary" className="text-sm">
-                      Source: {entity.source === 'congress' ? 'Congress.gov' : 'OpenStates'}
+                      Source: {entity.source === 'congress' ? 'Congress.gov' : entity.source === 'curated' ? 'Official Records' : 'OpenStates'}
                     </Badge>
                   </div>
+
+                  {/* Social Links Section */}
+                  {details?.socialLinks && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        {details.socialLinks.website && (
+                          <a
+                            href={details.socialLinks.website.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                          >
+                            <Globe className="h-4 w-4" />
+                            Official Website
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {details.socialLinks.twitter && (
+                          <a
+                            href={details.socialLinks.twitter.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            @{details.socialLinks.twitter.handle}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {details.socialLinks.office?.phone && (
+                          <span className="text-sm text-muted-foreground">
+                            📞 {details.socialLinks.office.phone}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        External, self-managed accounts • Links verified via Congress.gov
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -318,16 +435,16 @@ export default function OfficialProfile() {
 
             {details && (
               <div className="space-y-8">
-                {/* Data Sections in Accordion */}
+                {/* Data Sections in Accordion - floating card style */}
                 <Accordion type="multiple" defaultValue={['bills', 'votes']} className="space-y-4">
                   {/* Sponsored Bills */}
-                  <AccordionItem value="bills" className="border border-border rounded-lg px-4">
+                  <AccordionItem value="bills" className="border border-border rounded-lg px-4 bg-card/90 backdrop-blur-sm shadow-sm">
                     <AccordionTrigger className="hover:no-underline">
                       <div className="flex items-center gap-2">
                         <FileText className="h-5 w-5 text-primary" />
                         <span className="font-semibold">Sponsored Legislation</span>
                         <Badge variant="secondary" className="ml-2">
-                          {details.bills.length} bills
+                          {details.bills.length > 0 ? `${details.bills.length} bills` : 'None'}
                         </Badge>
                       </div>
                     </AccordionTrigger>
@@ -335,7 +452,6 @@ export default function OfficialProfile() {
                       {details.bills.length > 0 ? (
                         <div className="space-y-3 pt-2">
                           {details.bills.slice(0, 10).map((bill: any, i: number) => {
-                            // Build public Congress.gov URL instead of API URL
                             const publicBillUrl = bill.congress && bill.type && bill.number
                               ? `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.type.toLowerCase().replace('.', '')}-bill/${bill.number}`
                               : null;
@@ -362,6 +478,7 @@ export default function OfficialProfile() {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-primary hover:text-primary/80 shrink-0"
+                                      title="View on Congress.gov"
                                     >
                                       <ExternalLink className="h-4 w-4" />
                                     </a>
@@ -370,23 +487,22 @@ export default function OfficialProfile() {
                               </div>
                             );
                           })}
+                          <SourceLink label="Congress.gov" url="https://www.congress.gov/" />
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground py-2">
-                          No sponsored legislation data available.
-                        </p>
+                        <EmptyState type="bills" chamber={entity.chamber} />
                       )}
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Cosponsored/Votes */}
-                  <AccordionItem value="votes" className="border border-border rounded-lg px-4">
+                  <AccordionItem value="votes" className="border border-border rounded-lg px-4 bg-card/90 backdrop-blur-sm shadow-sm">
                     <AccordionTrigger className="hover:no-underline">
                       <div className="flex items-center gap-2">
                         <Vote className="h-5 w-5 text-primary" />
                         <span className="font-semibold">Cosponsored Legislation</span>
                         <Badge variant="secondary" className="ml-2">
-                          {details.votes.length} items
+                          {details.votes.length > 0 ? `${details.votes.length} items` : 'None'}
                         </Badge>
                       </div>
                     </AccordionTrigger>
@@ -394,7 +510,6 @@ export default function OfficialProfile() {
                       {details.votes.length > 0 ? (
                         <div className="space-y-3 pt-2">
                           {details.votes.slice(0, 10).map((vote: any, i: number) => {
-                            // Build public Congress.gov URL instead of API URL
                             const publicBillUrl = vote.congress && vote.billNumber
                               ? `https://www.congress.gov/bill/${vote.congress}th-congress/${vote.billNumber.toLowerCase().replace('.', '-').replace(/(\d+)/, 'bill/$1')}`
                               : null;
@@ -416,6 +531,7 @@ export default function OfficialProfile() {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-primary hover:text-primary/80 shrink-0"
+                                      title="View on Congress.gov"
                                     >
                                       <ExternalLink className="h-4 w-4" />
                                     </a>
@@ -424,17 +540,16 @@ export default function OfficialProfile() {
                               </div>
                             );
                           })}
+                          <SourceLink label="Congress.gov" url="https://www.congress.gov/" />
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground py-2">
-                          No cosponsored legislation data available.
-                        </p>
+                        <EmptyState type="votes" />
                       )}
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* FEC Funding */}
-                  <AccordionItem value="funding" className="border border-border rounded-lg px-4">
+                  <AccordionItem value="funding" className="border border-border rounded-lg px-4 bg-card/90 backdrop-blur-sm shadow-sm">
                     <AccordionTrigger className="hover:no-underline">
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-5 w-5 text-primary" />
@@ -533,26 +648,146 @@ export default function OfficialProfile() {
                             </div>
                           )}
                           
-                          <p className="text-xs text-muted-foreground/70 mt-3">
-                            Source: Federal Election Commission (fec.gov)
-                          </p>
+                          <div className="mt-3 pt-3 border-t border-border flex justify-between items-center">
+                            <SourceLink label="FEC.gov" url={details.funding.fec_url || 'https://www.fec.gov/'} />
+                            {details.funding.fec_url && (
+                              <a
+                                href={details.funding.fec_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                              >
+                                View full report <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground py-2">
-                          No FEC campaign finance data available for this official.
-                        </p>
+                        <EmptyState type="funding" />
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Campaign Committees (PACs) */}
+                  <AccordionItem value="committees" className="border border-border rounded-lg px-4 bg-card/90 backdrop-blur-sm shadow-sm">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Campaign Committees & PACs</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {details.committees?.length > 0 ? `${details.committees.length}` : 'None'}
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {details.committees && details.committees.length > 0 ? (
+                        <div className="space-y-3 pt-2">
+                          {details.committees.map((committee: any, i: number) => (
+                            <div key={i} className="bg-muted/50 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-foreground text-sm">
+                                    {committee.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {committee.designation} • {committee.type}
+                                  </p>
+                                  {committee.treasurer_name && (
+                                    <p className="text-xs text-muted-foreground/70 mt-1">
+                                      Treasurer: {committee.treasurer_name}
+                                    </p>
+                                  )}
+                                </div>
+                                {committee.fec_url && (
+                                  <a
+                                    href={committee.fec_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:text-primary/80 shrink-0"
+                                    title="View on FEC.gov"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          <SourceLink label="FEC.gov" url="https://www.fec.gov/" />
+                        </div>
+                      ) : (
+                        <EmptyState type="committees" />
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  {/* Lobbying Disclosures */}
+                  <AccordionItem value="lobbying" className="border border-border rounded-lg px-4 bg-card/90 backdrop-blur-sm shadow-sm">
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">Lobbying Disclosures</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {details.lobbying?.length > 0 ? `${details.lobbying.length} filings` : 'None'}
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {details.lobbying && details.lobbying.length > 0 ? (
+                        <div className="space-y-3 pt-2">
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Lobbying filings referencing this official from Senate Lobbying Disclosure Act (LDA) records.
+                          </p>
+                          {details.lobbying.slice(0, 8).map((filing: any, i: number) => (
+                            <div key={i} className="bg-muted/50 rounded-lg p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-foreground text-sm">
+                                    {filing.client || 'Unknown Client'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    via {filing.registrant || 'Unknown Registrant'}
+                                  </p>
+                                  {filing.issues && (
+                                    <p className="text-xs text-muted-foreground/70 mt-1">
+                                      Issues: {filing.issues}
+                                    </p>
+                                  )}
+                                  {filing.filing_date && (
+                                    <p className="text-xs text-muted-foreground/50 mt-1">
+                                      Filed: {filing.filing_date}
+                                    </p>
+                                  )}
+                                </div>
+                                {filing.lda_url && (
+                                  <a
+                                    href={filing.lda_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:text-primary/80 shrink-0"
+                                    title="View on LDA"
+                                  >
+                                    <ExternalLink className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          <SourceLink label="Senate LDA" url="https://lda.senate.gov/" />
+                        </div>
+                      ) : (
+                        <EmptyState type="lobbying" />
                       )}
                     </AccordionContent>
                   </AccordionItem>
 
                   {/* Congressional Record Quotes */}
-                  <AccordionItem value="quotes" className="border border-border rounded-lg px-4">
+                  <AccordionItem value="quotes" className="border border-border rounded-lg px-4 bg-card/90 backdrop-blur-sm shadow-sm">
                     <AccordionTrigger className="hover:no-underline">
                       <div className="flex items-center gap-2">
                         <Quote className="h-5 w-5 text-primary" />
                         <span className="font-semibold">Congressional Record</span>
                         <Badge variant="secondary" className="ml-2">
-                          {details.quotes.length} records
+                          {details.quotes.length > 0 ? `${details.quotes.length} records` : 'None'}
                         </Badge>
                       </div>
                     </AccordionTrigger>
@@ -576,6 +811,7 @@ export default function OfficialProfile() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-primary hover:text-primary/80 shrink-0"
+                                    title="View on GovInfo"
                                   >
                                     <ExternalLink className="h-4 w-4" />
                                   </a>
@@ -583,24 +819,22 @@ export default function OfficialProfile() {
                               </div>
                             </div>
                           ))}
-                          <p className="text-xs text-muted-foreground/70 pt-2">
-                            Source: GovInfo Congressional Record (govinfo.gov)
-                          </p>
+                          <SourceLink label="GovInfo" url="https://www.govinfo.gov/" />
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground py-2">
-                          No Congressional Record appearances found.
-                        </p>
+                        <EmptyState type="quotes" />
                       )}
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
 
                 {/* Profile Chat - NLP-powered Q&A */}
-                <ProfileChat 
-                  entityName={entity.name}
-                  contextData={contextData}
-                />
+                <div className="bg-card/90 backdrop-blur-sm border border-border rounded-lg shadow-sm">
+                  <ProfileChat 
+                    entityName={entity.name}
+                    contextData={contextData}
+                  />
+                </div>
 
                 {/* Source Attribution */}
                 <section className="border-t border-border pt-8">
@@ -624,6 +858,15 @@ export default function OfficialProfile() {
                       className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                     >
                       FEC.gov <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <span className="text-muted-foreground">•</span>
+                    <a 
+                      href="https://lda.senate.gov/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                    >
+                      Senate LDA <ExternalLink className="h-3 w-3" />
                     </a>
                     <span className="text-muted-foreground">•</span>
                     <a 

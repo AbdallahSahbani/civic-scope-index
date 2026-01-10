@@ -9,13 +9,17 @@ const corsHeaders = {
 const CONGRESS_BASE = 'https://api.congress.gov/v3';
 const FEC_BASE = 'https://api.open.fec.gov/v1';
 const GOVINFO_BASE = 'https://api.govinfo.gov';
+const LDA_BASE = 'https://lda.senate.gov/api/v1';
 
 interface EntityDetailResponse {
   member: any;
   bills: any[];
   votes: any[];
   funding: any;
+  committees: any[];
+  lobbying: any[];
   quotes: any[];
+  socialLinks: any;
   sources: string[];
 }
 
@@ -32,7 +36,17 @@ async function fetchMemberDetails(bioguideId: string, apiKey: string) {
     }
     
     const data = await res.json();
-    return data.member || null;
+    const member = data.member || null;
+    
+    // Extract official website and social links from member data
+    if (member) {
+      member.officialWebsite = member.officialWebsiteUrl || member.url || null;
+      // Congress.gov sometimes includes these in the member object
+      member.twitterAccount = member.twitterAccount || null;
+      member.youtubeAccount = member.youtubeAccount || null;
+    }
+    
+    return member;
   } catch (error) {
     console.error('Error fetching member details:', error);
     return null;
@@ -64,7 +78,6 @@ async function fetchMemberVotes(bioguideId: string, apiKey: string) {
   try {
     console.log(`Fetching cosponsored legislation for ${bioguideId}...`);
     
-    // Get member's cosponsored legislation
     const cosponsoredUrl = new URL(`${CONGRESS_BASE}/member/${bioguideId}/cosponsored-legislation`);
     cosponsoredUrl.searchParams.set('api_key', apiKey);
     cosponsoredUrl.searchParams.set('limit', '15');
@@ -74,7 +87,6 @@ async function fetchMemberVotes(bioguideId: string, apiKey: string) {
     
     const data = await res.json();
     
-    // Transform cosponsored legislation into vote-like records
     return (data.cosponsoredLegislation || []).map((item: any) => ({
       type: 'cosponsored',
       billNumber: `${item.type}${item.number}`,
@@ -89,7 +101,7 @@ async function fetchMemberVotes(bioguideId: string, apiKey: string) {
   }
 }
 
-// State name to abbreviation map for FEC API (requires 2-letter codes)
+// State name to abbreviation map for FEC API
 const STATE_ABBREV: Record<string, string> = {
   'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR', 'california': 'CA',
   'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE', 'florida': 'FL', 'georgia': 'GA',
@@ -107,43 +119,30 @@ const STATE_ABBREV: Record<string, string> = {
 
 function getStateAbbrev(state: string): string {
   if (!state) return '';
-  // Already an abbreviation
   if (state.length === 2) return state.toUpperCase();
-  // Look up full name
   return STATE_ABBREV[state.toLowerCase()] || state;
 }
 
 /**
- * FEC Two-Step Resolution:
- * Step 1: Search by name + state + office to get FEC candidate_id
- * Step 2: Use candidate_id to fetch campaign finance data
- * 
- * IMPORTANT: FEC does NOT use bioguide IDs - they have their own identity system
- * IMPORTANT: FEC requires 2-letter state codes, not full state names
+ * FEC Two-Step Resolution with enhanced committee data
  */
 async function fetchFECData(name: string, state: string, chamber: string, apiKey: string) {
   try {
-    // Convert state to 2-letter abbreviation (FEC requires this)
     const stateAbbrev = getStateAbbrev(state);
     if (!stateAbbrev) {
       console.log(`FEC: Cannot resolve state abbreviation for "${state}"`);
       return null;
     }
     
-    // Step 1: Resolve name → FEC candidate_id
-    // FEC uses 'H' for House, 'S' for Senate
     const office = chamber.toLowerCase().includes('house') || chamber.toLowerCase().includes('representative') 
       ? 'H' 
       : 'S';
     
-    // Clean name for search - FEC stores names differently
-    // Convert "LastName, FirstName" to "FirstName LastName" for better matching
     let searchName = name;
     if (name.includes(',')) {
       const parts = name.split(',').map(p => p.trim());
       searchName = `${parts[1]} ${parts[0]}`.replace(/\s+/g, ' ').trim();
     }
-    // Also try just last name for better matching
     const lastName = name.includes(',') ? name.split(',')[0].trim() : name.split(' ').pop() || name;
     
     const searchUrl = new URL(`${FEC_BASE}/candidates/search/`);
@@ -166,7 +165,6 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
     let searchData = await searchRes.json();
     let candidate = searchData.results?.[0];
     
-    // If no result, try with just last name
     if (!candidate?.candidate_id && lastName !== searchName) {
       console.log(`FEC: No result for "${searchName}", trying last name "${lastName}"...`);
       searchUrl.searchParams.set('name', lastName);
@@ -184,14 +182,12 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
     
     console.log(`FEC Step 1 Success: Found candidate_id ${candidate.candidate_id}`);
     
-    // Get election cycles to determine which cycle to fetch totals for
     const electionYears = candidate.election_years || candidate.cycles || [];
     const mostRecentCycle = electionYears.length > 0 
       ? Math.max(...electionYears.filter((y: number) => y <= new Date().getFullYear() + 2))
       : new Date().getFullYear();
     
-    // Step 2: Get campaign finance totals using candidate/{id}/totals/ endpoint
-    // This endpoint is more reliable than /candidates/totals/
+    // Fetch totals
     const totalsUrl = new URL(`${FEC_BASE}/candidate/${candidate.candidate_id}/totals/`);
     totalsUrl.searchParams.set('api_key', apiKey);
     totalsUrl.searchParams.set('cycle', mostRecentCycle.toString());
@@ -204,14 +200,9 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
     if (totalsRes.ok) {
       const totalsData = await totalsRes.json();
       totals = totalsData.results?.[0] || null;
-      console.log(`FEC Step 2 Result: receipts=${totals?.receipts}, disbursements=${totals?.disbursements}`);
-    } else {
-      console.log(`FEC Step 2: Totals fetch returned ${totalsRes.status}`);
     }
     
-    // If no totals for most recent cycle, try without cycle filter
     if (!totals?.receipts && !totals?.disbursements) {
-      console.log(`FEC: No totals for cycle ${mostRecentCycle}, fetching all-time...`);
       const allTimeUrl = new URL(`${FEC_BASE}/candidate/${candidate.candidate_id}/totals/`);
       allTimeUrl.searchParams.set('api_key', apiKey);
       allTimeUrl.searchParams.set('per_page', '1');
@@ -221,11 +212,9 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
       if (allTimeRes.ok) {
         const allTimeData = await allTimeRes.json();
         totals = allTimeData.results?.[0] || null;
-        console.log(`FEC: All-time totals: receipts=${totals?.receipts}`);
       }
     }
     
-    // Return combined data
     return {
       candidate_id: candidate.candidate_id,
       name: candidate.name,
@@ -236,7 +225,6 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
       district: candidate.district,
       cycles: electionYears,
       incumbent_challenge: candidate.incumbent_challenge_full,
-      // Financial totals (if available)
       receipts: totals?.receipts || null,
       disbursements: totals?.disbursements || null,
       cash_on_hand: totals?.cash_on_hand_end_period || null,
@@ -248,6 +236,8 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
       coverage_start_date: totals?.coverage_start_date || null,
       coverage_end_date: totals?.coverage_end_date || null,
       cycle: totals?.cycle || mostRecentCycle,
+      // Deep link to FEC candidate page
+      fec_url: `https://www.fec.gov/data/candidate/${candidate.candidate_id}/`,
     };
   } catch (error) {
     console.error('Error in FEC two-step resolution:', error);
@@ -255,31 +245,108 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
   }
 }
 
+/**
+ * Fetch campaign committees (authorized, leadership PACs, JFC) from FEC
+ */
+async function fetchFECCommittees(candidateId: string, apiKey: string) {
+  try {
+    const url = new URL(`${FEC_BASE}/candidate/${candidateId}/committees/`);
+    url.searchParams.set('api_key', apiKey);
+    url.searchParams.set('per_page', '20');
+    
+    console.log(`FEC: Fetching committees for candidate ${candidateId}...`);
+    const res = await fetch(url.toString());
+    
+    if (!res.ok) {
+      console.error(`FEC committees error: ${res.status}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    
+    return (data.results || []).map((c: any) => ({
+      committee_id: c.committee_id,
+      name: c.name,
+      designation: c.designation_full || c.designation,
+      designation_code: c.designation,
+      type: c.committee_type_full || c.committee_type,
+      type_code: c.committee_type,
+      party: c.party_full || c.party,
+      treasurer_name: c.treasurer_name,
+      cycles: c.cycles,
+      // Deep link to FEC committee page
+      fec_url: `https://www.fec.gov/data/committee/${c.committee_id}/`,
+    }));
+  } catch (error) {
+    console.error('Error fetching FEC committees:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch lobbying disclosures from Senate LDA (free, no API key required)
+ * This searches for lobbying filings that mention the member's name
+ */
+async function fetchLobbyingDisclosures(memberName: string) {
+  try {
+    // Clean name for search
+    const cleanName = memberName.replace(',', '').trim();
+    const lastName = memberName.includes(',') 
+      ? memberName.split(',')[0].trim() 
+      : memberName.split(' ').pop() || memberName;
+    
+    console.log(`LDA: Searching lobbying disclosures for "${lastName}"...`);
+    
+    // Senate LDA provides XML/JSON downloads - we'll search the public filings
+    // Note: The actual LDA API requires specific endpoints, this is a simplified search
+    const searchUrl = `${LDA_BASE}/filings/?search=${encodeURIComponent(lastName)}&per_page=10`;
+    
+    const res = await fetch(searchUrl, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!res.ok) {
+      console.log(`LDA: Search returned ${res.status}, may not be available`);
+      return [];
+    }
+    
+    const data = await res.json();
+    
+    return (data.results || []).slice(0, 10).map((filing: any) => ({
+      filing_id: filing.id || filing.filing_uuid,
+      registrant: filing.registrant?.name || filing.registrant_name,
+      client: filing.client?.name || filing.client_name,
+      lobbyists: filing.lobbyists?.map((l: any) => l.name).join(', ') || null,
+      issues: filing.lobbying_activities?.map((a: any) => a.general_issue_code_display).join(', ') || null,
+      specific_issues: filing.lobbying_activities?.[0]?.description || null,
+      filing_date: filing.dt_posted || filing.received,
+      income: filing.income || null,
+      expenses: filing.expenses || null,
+      // Deep link to LDA filing
+      lda_url: filing.id ? `https://lda.senate.gov/filings/public/filing/${filing.id}/` : null,
+    }));
+  } catch (error) {
+    console.error('Error fetching LDA lobbying disclosures:', error);
+    return [];
+  }
+}
+
 async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string) {
   try {
-    // GovInfo API uses POST for search
     const searchUrl = `${GOVINFO_BASE}/search?api_key=${apiKey}`;
-    
-    // Clean name for search (remove comma formatting)
     const cleanName = memberName.replace(',', '').trim();
     
     console.log(`Fetching Congressional Record quotes for ${cleanName}...`);
     
     const res = await fetch(searchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: cleanName,
         pageSize: 10,
         offsetMark: '*',
-        sorts: [
-          { field: 'dateIssued', sortOrder: 'DESC' }
-        ],
-        filters: [
-          { field: 'collectionCode', value: 'CREC' }
-        ]
+        sorts: [{ field: 'dateIssued', sortOrder: 'DESC' }],
+        filters: [{ field: 'collectionCode', value: 'CREC' }]
       }),
     });
     
@@ -296,7 +363,10 @@ async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string
       dateIssued: item.dateIssued,
       packageId: item.packageId,
       granuleId: item.granuleId,
-      url: `https://www.govinfo.gov/app/details/${item.packageId}`,
+      // Deep link to GovInfo document
+      url: item.packageId 
+        ? `https://www.govinfo.gov/app/details/${item.packageId}${item.granuleId ? `/${item.granuleId}` : ''}`
+        : null,
       collectionCode: item.collectionCode,
     }));
   } catch (error) {
@@ -305,12 +375,60 @@ async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string
   }
 }
 
+/**
+ * Build official social links from member data
+ */
+function buildSocialLinks(member: any): any {
+  if (!member) return null;
+  
+  const links: any = {};
+  
+  // Official website
+  if (member.officialWebsiteUrl || member.url) {
+    links.website = {
+      url: member.officialWebsiteUrl || member.url,
+      label: 'Official Website',
+      source: 'Congress.gov'
+    };
+  }
+  
+  // Contact info if available
+  if (member.addressInformation) {
+    links.office = {
+      address: member.addressInformation.officeAddress,
+      phone: member.addressInformation.phoneNumber,
+      source: 'Congress.gov'
+    };
+  }
+  
+  // Twitter/X (if in member data)
+  if (member.twitterAccount) {
+    links.twitter = {
+      url: `https://twitter.com/${member.twitterAccount}`,
+      handle: member.twitterAccount,
+      label: 'X (Twitter)',
+      source: 'Congress.gov'
+    };
+  }
+  
+  // YouTube (if in member data)
+  if (member.youtubeAccount) {
+    links.youtube = {
+      url: `https://youtube.com/${member.youtubeAccount}`,
+      channel: member.youtubeAccount,
+      label: 'YouTube',
+      source: 'Congress.gov'
+    };
+  }
+  
+  return Object.keys(links).length > 0 ? links : null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // USA-only geo-restriction
   const geoCheck = checkUSAOnly(req);
   if (!geoCheck.allowed) {
     return createGeoBlockedResponse(corsHeaders);
@@ -330,7 +448,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate bioguide ID length
     if (bioguideId.length > 20) {
       return new Response(
         JSON.stringify({ error: 'Invalid bioguide parameter' }),
@@ -349,17 +466,14 @@ serve(async (req) => {
       );
     }
 
-    // First, fetch member details to get accurate role/chamber info
+    // Fetch member details first
     const member = await fetchMemberDetails(bioguideId, congressApiKey);
-    
-    // Determine chamber from member data or fallback to passed value
     const resolvedChamber = member?.terms?.[member.terms.length - 1]?.chamber || entityChamber;
 
-    // Fetch remaining data in parallel
+    // Fetch core data in parallel
     const [bills, votes, funding, quotes] = await Promise.all([
       fetchSponsoredBills(bioguideId, congressApiKey),
       fetchMemberVotes(bioguideId, congressApiKey),
-      // Use two-step FEC resolution with name + state + chamber
       entityName && entityState && fecApiKey 
         ? fetchFECData(entityName, entityState, resolvedChamber, fecApiKey)
         : Promise.resolve(null),
@@ -368,17 +482,34 @@ serve(async (req) => {
         : Promise.resolve([]),
     ]);
 
-    console.log(`Fetched: member=${!!member}, bills=${bills.length}, votes=${votes.length}, funding=${!!funding}, quotes=${quotes.length}`);
+    // Fetch additional data (committees, lobbying) - these depend on FEC candidate_id
+    const [committees, lobbying] = await Promise.all([
+      funding?.candidate_id && fecApiKey
+        ? fetchFECCommittees(funding.candidate_id, fecApiKey)
+        : Promise.resolve([]),
+      entityName 
+        ? fetchLobbyingDisclosures(entityName)
+        : Promise.resolve([]),
+    ]);
+
+    // Build social links from member data
+    const socialLinks = buildSocialLinks(member);
+
+    console.log(`Fetched: member=${!!member}, bills=${bills.length}, votes=${votes.length}, funding=${!!funding}, committees=${committees.length}, lobbying=${lobbying.length}, quotes=${quotes.length}`);
 
     const response: EntityDetailResponse = {
       member,
       bills,
       votes,
       funding,
+      committees,
+      lobbying,
       quotes,
+      socialLinks,
       sources: [
         'Congress.gov',
         ...(funding ? ['Federal Election Commission (FEC)'] : []),
+        ...(lobbying.length > 0 ? ['Senate Lobbying Disclosure Act (LDA)'] : []),
         ...(quotes.length > 0 ? ['GovInfo Congressional Record'] : []),
       ],
     };
