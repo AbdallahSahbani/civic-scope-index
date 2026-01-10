@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkUSAOnly, createGeoBlockedResponse, sanitizeString } from "../_shared/geo-restrict.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,8 +43,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // USA-only geo-restriction
+  const geoCheck = checkUSAOnly(req);
+  if (!geoCheck.allowed) {
+    return createGeoBlockedResponse(corsHeaders);
+  }
+
   try {
-    const { message, context } = await req.json();
+    const body = await req.json();
+    
+    // Input validation
+    const message = sanitizeString(body.message || '', 500);
+    const context = sanitizeString(body.context || '', 1000);
 
     if (!message) {
       return new Response(
@@ -60,7 +71,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing search query: ${message}`);
+    console.log(`Processing search query: ${message.substring(0, 50)}...`);
 
     const response = await fetch(AI_GATEWAY_URL, {
       method: 'POST',

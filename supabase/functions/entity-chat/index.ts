@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkUSAOnly, createGeoBlockedResponse, sanitizeString } from "../_shared/geo-restrict.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,8 +13,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // USA-only geo-restriction
+  const geoCheck = checkUSAOnly(req);
+  if (!geoCheck.allowed) {
+    return createGeoBlockedResponse(corsHeaders);
+  }
+
   try {
-    const { question, context, entityName } = await req.json();
+    const body = await req.json();
+    
+    // Input validation and sanitization
+    const question = sanitizeString(body.question || '', 500);
+    const context = sanitizeString(body.context || '', 5000);
+    const entityName = sanitizeString(body.entityName || '', 200);
 
     if (!question || !context) {
       return new Response(

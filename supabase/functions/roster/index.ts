@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkUSAOnly, createGeoBlockedResponse } from "../_shared/geo-restrict.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -104,6 +105,12 @@ serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // USA-only geo-restriction
+  const geoCheck = checkUSAOnly(req);
+  if (!geoCheck.allowed) {
+    return createGeoBlockedResponse(corsHeaders);
   }
 
   try {
