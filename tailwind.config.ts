@@ -9,10 +9,14 @@ export default {
       center: true,
       padding: "2rem",
       screens: {
-        "2xl": "1400px",
+        "2xl": "1200px",
       },
     },
     extend: {
+      fontFamily: {
+        serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,6 +51,21 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        civic: {
+          navy: "hsl(var(--civic-navy))",
+          slate: "hsl(var(--civic-slate))",
+          paper: "hsl(var(--civic-paper))",
+          blue: "hsl(var(--civic-blue))",
+          red: "hsl(var(--civic-red))",
+        },
+        badge: {
+          official: "hsl(var(--badge-official))",
+          "official-foreground": "hsl(var(--badge-official-foreground))",
+          journalist: "hsl(var(--badge-journalist))",
+          "journalist-foreground": "hsl(var(--badge-journalist-foreground))",
+          media: "hsl(var(--badge-media))",
+          "media-foreground": "hsl(var(--badge-media-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -65,20 +84,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
