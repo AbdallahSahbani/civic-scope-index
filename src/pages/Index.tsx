@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { HeroSection } from '@/components/HeroSection';
 import { FilterPanel } from '@/components/FilterPanel';
 import { EntityCard } from '@/components/EntityCard';
 import { mockEntities, filterEntities } from '@/lib/mockData';
@@ -24,8 +25,22 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="flex-1">
-        <div className="container py-8 space-y-8">
+      {/* Cinematic Hero Section */}
+      <HeroSection />
+
+      <main id="roster-content" className="flex-1">
+        <div className="container py-12 space-y-8">
+          {/* Section Header */}
+          <div className="text-center mb-8">
+            <h2 className="font-serif text-3xl font-semibold text-foreground">
+              Roster
+            </h2>
+            <p className="mt-2 text-muted-foreground max-w-2xl mx-auto">
+              USA-only profiles for elected officials, journalists, and media organizations. 
+              Descriptive metrics, evidence-linked.
+            </p>
+          </div>
+
           {/* Filter Panel */}
           <FilterPanel
             search={search}
@@ -60,6 +75,11 @@ const Index = () => {
               </div>
             )}
           </div>
+
+          {/* Tip */}
+          <p className="text-center text-sm text-muted-foreground/70 pt-4">
+            Tip: Click a profile, then use the "Profile Interpreter" button to ask scoped questions.
+          </p>
         </div>
       </main>
 
