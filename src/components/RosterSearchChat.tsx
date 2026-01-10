@@ -1,22 +1,35 @@
 import { useState } from 'react';
-import { MessageSquare, Send, Loader2, X, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Loader2, X, Sparkles, ChevronDown, ChevronUp, MapPin, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface RosterSearchChatProps {
-  onApplyFilters?: (filters: { state?: string; chamber?: string }) => void;
+  onApplyFilters?: (filters: { 
+    state?: string; 
+    chamber?: string; 
+    party?: string;
+    searchTerm?: string;
+  }) => void;
 }
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  filters?: {
+    state?: string;
+    chamber?: string;
+    party?: string;
+    district?: string;
+  };
 }
 
 const EXAMPLE_QUERIES = [
-  "Connecticut New Haven",
-  "Who represents Texas in Congress?",
-  "California state legislators",
+  "I live in Waterbury, CT 06705",
+  "Who represents New Haven County?",
+  "Show me Texas federal representatives",
+  "California Democratic senators",
 ];
 
 export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
@@ -24,6 +37,7 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<Message['filters']>();
 
   const handleSubmit = async (query?: string) => {
     const message = query || input.trim();
@@ -41,7 +55,7 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({ message }),
         }
@@ -52,24 +66,43 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
           toast.error('Rate limit exceeded. Please try again in a moment.');
           return;
         }
+        if (response.status === 402) {
+          toast.error('Service temporarily unavailable. Please try again later.');
+          return;
+        }
         throw new Error('Failed to get response');
       }
 
       const data = await response.json();
       
+      const filters = data.filterSuggestions;
+      
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: data.answer 
+        content: data.answer,
+        filters: filters,
       }]);
 
-      // If filter suggestions were extracted, offer to apply them
-      if (data.filterSuggestions?.state && onApplyFilters) {
-        // Could auto-apply or show a button to apply
+      // Auto-apply filters if we got valid suggestions
+      if (data.autoApply && filters && onApplyFilters) {
+        const hasFilters = filters.state || filters.chamber || filters.party;
+        if (hasFilters) {
+          setAppliedFilters(filters);
+          onApplyFilters({
+            state: filters.state || '',
+            chamber: filters.chamber || '',
+            party: filters.party || '',
+            searchTerm: filters.searchTerm || '',
+          });
+          toast.success(`Filters applied: ${filters.state || ''}${filters.chamber ? ` • ${filters.chamber}` : ''}`, {
+            icon: <Filter className="h-4 w-4" />,
+          });
+        }
       }
     } catch (error) {
       console.error('Search chat error:', error);
       toast.error('Failed to process your query. Please try again.');
-      setMessages(prev => prev.slice(0, -1)); // Remove the user message on error
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
@@ -131,18 +164,45 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
                     }`}
                   >
                     {msg.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        {msg.content.split('\n').map((line, j) => (
-                          <p key={j} className="mb-1 last:mb-0">
-                            {line.startsWith('**') ? (
-                              <strong>{line.replace(/\*\*/g, '')}</strong>
-                            ) : line.startsWith('- ') ? (
-                              <span className="block pl-2">• {line.slice(2)}</span>
-                            ) : (
-                              line
+                      <div className="space-y-2">
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          {msg.content.split('\n').map((line, j) => (
+                            <p key={j} className="mb-1 last:mb-0">
+                              {line.startsWith('**') ? (
+                                <strong>{line.replace(/\*\*/g, '')}</strong>
+                              ) : line.startsWith('- ') ? (
+                                <span className="block pl-2">• {line.slice(2)}</span>
+                              ) : (
+                                line
+                              )}
+                            </p>
+                          ))}
+                        </div>
+                        {msg.filters && (msg.filters.state || msg.filters.chamber || msg.filters.party) && (
+                          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/50">
+                            {msg.filters.state && (
+                              <Badge variant="secondary" className="text-xs">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {msg.filters.state}
+                              </Badge>
                             )}
-                          </p>
-                        ))}
+                            {msg.filters.chamber && (
+                              <Badge variant="secondary" className="text-xs">
+                                {msg.filters.chamber}
+                              </Badge>
+                            )}
+                            {msg.filters.party && (
+                              <Badge variant="secondary" className="text-xs">
+                                {msg.filters.party}
+                              </Badge>
+                            )}
+                            {msg.filters.district && (
+                              <Badge variant="outline" className="text-xs">
+                                District {msg.filters.district}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       msg.content
