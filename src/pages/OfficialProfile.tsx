@@ -133,11 +133,17 @@ export default function OfficialProfile() {
       if (details.funding.individual_contributions) {
         parts.push(`Individual Contributions: $${Number(details.funding.individual_contributions).toLocaleString()}`);
       }
+      if (details.funding.pac_contributions) {
+        parts.push(`PAC Contributions: $${Number(details.funding.pac_contributions).toLocaleString()}`);
+      }
+      if (details.funding.party_contributions) {
+        parts.push(`Party Contributions: $${Number(details.funding.party_contributions).toLocaleString()}`);
+      }
       if (details.funding.debts) {
         parts.push(`Debts Owed: $${Number(details.funding.debts).toLocaleString()}`);
       }
-      if (details.funding.coverage_end_date) {
-        parts.push(`Data as of: ${details.funding.coverage_end_date}`);
+      if (details.funding.coverage_start_date || details.funding.coverage_end_date) {
+        parts.push(`Reporting Period: ${details.funding.coverage_start_date || 'N/A'} to ${details.funding.coverage_end_date || 'N/A'}`);
       }
       parts.push('');
     }
@@ -475,6 +481,18 @@ export default function OfficialProfile() {
                                   <div>
                                     <p className="text-muted-foreground">Individual Contributions</p>
                                     <p className="font-medium text-foreground">${Number(details.funding.individual_contributions).toLocaleString()}</p>
+                                  </div>
+                                )}
+                                {details.funding.pac_contributions && (
+                                  <div>
+                                    <p className="text-muted-foreground">PAC Contributions</p>
+                                    <p className="font-medium text-foreground">${Number(details.funding.pac_contributions).toLocaleString()}</p>
+                                  </div>
+                                )}
+                                {details.funding.party_contributions && (
+                                  <div>
+                                    <p className="text-muted-foreground">Party Contributions</p>
+                                    <p className="font-medium text-foreground">${Number(details.funding.party_contributions).toLocaleString()}</p>
                                   </div>
                                 )}
                                 {details.funding.debts && Number(details.funding.debts) > 0 && (
