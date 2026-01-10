@@ -184,20 +184,45 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
     
     console.log(`FEC Step 1 Success: Found candidate_id ${candidate.candidate_id}`);
     
-    // Step 2: Get campaign finance totals using the resolved candidate_id
-    const totalsUrl = new URL(`${FEC_BASE}/candidates/totals/`);
-    totalsUrl.searchParams.set('api_key', apiKey);
-    totalsUrl.searchParams.set('candidate_id', candidate.candidate_id);
-    totalsUrl.searchParams.set('per_page', '1');
-    totalsUrl.searchParams.set('sort', '-cycle');
+    // Get election cycles to determine which cycle to fetch totals for
+    const electionYears = candidate.election_years || candidate.cycles || [];
+    const mostRecentCycle = electionYears.length > 0 
+      ? Math.max(...electionYears.filter((y: number) => y <= new Date().getFullYear() + 2))
+      : new Date().getFullYear();
     
-    console.log(`FEC Step 2: Fetching totals for ${candidate.candidate_id}...`);
+    // Step 2: Get campaign finance totals using candidate/{id}/totals/ endpoint
+    // This endpoint is more reliable than /candidates/totals/
+    const totalsUrl = new URL(`${FEC_BASE}/candidate/${candidate.candidate_id}/totals/`);
+    totalsUrl.searchParams.set('api_key', apiKey);
+    totalsUrl.searchParams.set('cycle', mostRecentCycle.toString());
+    totalsUrl.searchParams.set('per_page', '1');
+    
+    console.log(`FEC Step 2: Fetching totals for ${candidate.candidate_id} (cycle ${mostRecentCycle})...`);
     const totalsRes = await fetch(totalsUrl.toString());
     
     let totals = null;
     if (totalsRes.ok) {
       const totalsData = await totalsRes.json();
       totals = totalsData.results?.[0] || null;
+      console.log(`FEC Step 2 Result: receipts=${totals?.receipts}, disbursements=${totals?.disbursements}`);
+    } else {
+      console.log(`FEC Step 2: Totals fetch returned ${totalsRes.status}`);
+    }
+    
+    // If no totals for most recent cycle, try without cycle filter
+    if (!totals?.receipts && !totals?.disbursements) {
+      console.log(`FEC: No totals for cycle ${mostRecentCycle}, fetching all-time...`);
+      const allTimeUrl = new URL(`${FEC_BASE}/candidate/${candidate.candidate_id}/totals/`);
+      allTimeUrl.searchParams.set('api_key', apiKey);
+      allTimeUrl.searchParams.set('per_page', '1');
+      allTimeUrl.searchParams.set('sort', '-cycle');
+      
+      const allTimeRes = await fetch(allTimeUrl.toString());
+      if (allTimeRes.ok) {
+        const allTimeData = await allTimeRes.json();
+        totals = allTimeData.results?.[0] || null;
+        console.log(`FEC: All-time totals: receipts=${totals?.receipts}`);
+      }
     }
     
     // Return combined data
@@ -209,7 +234,7 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
       office_code: candidate.office,
       state: candidate.state,
       district: candidate.district,
-      cycles: candidate.election_years || candidate.cycles,
+      cycles: electionYears,
       incumbent_challenge: candidate.incumbent_challenge_full,
       // Financial totals (if available)
       receipts: totals?.receipts || null,
@@ -217,9 +242,12 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
       cash_on_hand: totals?.cash_on_hand_end_period || null,
       debts: totals?.debts_owed_by_committee || null,
       individual_contributions: totals?.individual_contributions || null,
-      last_cash_on_hand_end_period: totals?.last_cash_on_hand_end_period || null,
+      pac_contributions: totals?.other_political_committee_contributions || null,
+      party_contributions: totals?.political_party_committee_contributions || null,
+      federal_funds: totals?.federal_funds || null,
+      coverage_start_date: totals?.coverage_start_date || null,
       coverage_end_date: totals?.coverage_end_date || null,
-      cycle: totals?.cycle || null,
+      cycle: totals?.cycle || mostRecentCycle,
     };
   } catch (error) {
     console.error('Error in FEC two-step resolution:', error);
