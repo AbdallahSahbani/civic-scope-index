@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.interest-match]
 verify_jwt = false
+
+[functions.roster-search-chat]
+verify_jwt = false
