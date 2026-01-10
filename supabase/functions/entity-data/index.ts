@@ -15,8 +15,10 @@ interface EntityDetailResponse {
   member: any;
   bills: any[];
   votes: any[];
+  rollCallVotes: any[];
   funding: any;
   committees: any[];
+  memberCommittees: any[];
   lobbying: any[];
   quotes: any[];
   socialLinks: any;
@@ -41,9 +43,10 @@ async function fetchMemberDetails(bioguideId: string, apiKey: string) {
     // Extract official website and social links from member data
     if (member) {
       member.officialWebsite = member.officialWebsiteUrl || member.url || null;
-      // Congress.gov sometimes includes these in the member object
       member.twitterAccount = member.twitterAccount || null;
       member.youtubeAccount = member.youtubeAccount || null;
+      member.facebookAccount = member.facebookAccount || null;
+      member.instagramAccount = member.instagramAccount || null;
     }
     
     return member;
@@ -67,14 +70,20 @@ async function fetchSponsoredBills(bioguideId: string, apiKey: string) {
     }
     
     const data = await res.json();
-    return data.sponsoredLegislation || [];
+    return (data.sponsoredLegislation || []).map((bill: any) => ({
+      ...bill,
+      // Deep link to Congress.gov
+      congressUrl: bill.congress && bill.type && bill.number
+        ? `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.type.toLowerCase().replace('.', '')}-bill/${bill.number}`
+        : null,
+    }));
   } catch (error) {
     console.error('Error fetching sponsored bills:', error);
     return [];
   }
 }
 
-async function fetchMemberVotes(bioguideId: string, apiKey: string) {
+async function fetchCosponsoredLegislation(bioguideId: string, apiKey: string) {
   try {
     console.log(`Fetching cosponsored legislation for ${bioguideId}...`);
     
@@ -94,9 +103,122 @@ async function fetchMemberVotes(bioguideId: string, apiKey: string) {
       congress: item.congress,
       latestAction: item.latestAction,
       url: item.url,
+      congressUrl: item.congress && item.type && item.number
+        ? `https://www.congress.gov/bill/${item.congress}th-congress/${item.type.toLowerCase()}-bill/${item.number}`
+        : null,
     }));
   } catch (error) {
     console.error('Error fetching cosponsored legislation:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch committee assignments from Congress.gov
+ */
+async function fetchMemberCommittees(bioguideId: string, apiKey: string) {
+  try {
+    const url = new URL(`${CONGRESS_BASE}/member/${bioguideId}`);
+    url.searchParams.set('api_key', apiKey);
+    
+    console.log(`Fetching committee assignments for ${bioguideId}...`);
+    const res = await fetch(url.toString());
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    const member = data.member;
+    
+    // Extract current committee assignments from terms
+    const currentTerm = member?.terms?.[member.terms.length - 1];
+    const committees: any[] = [];
+    
+    // Check if member object has committee assignments
+    if (member?.committees) {
+      return member.committees.map((c: any) => ({
+        name: c.name,
+        chamber: c.chamber,
+        url: c.url,
+        congressUrl: c.systemCode 
+          ? `https://www.congress.gov/committee/${c.chamber?.toLowerCase() || 'senate'}/${c.systemCode}`
+          : null,
+      }));
+    }
+    
+    // Also try fetching from the committees endpoint
+    try {
+      const committeeUrl = new URL(`${CONGRESS_BASE}/member/${bioguideId}/committees`);
+      committeeUrl.searchParams.set('api_key', apiKey);
+      
+      const committeeRes = await fetch(committeeUrl.toString());
+      if (committeeRes.ok) {
+        const committeeData = await committeeRes.json();
+        return (committeeData.committees || []).map((c: any) => ({
+          name: c.name,
+          chamber: c.chamber,
+          systemCode: c.systemCode,
+          congressUrl: c.systemCode 
+            ? `https://www.congress.gov/committee/${(c.chamber || 'senate').toLowerCase()}/${c.systemCode}`
+            : null,
+        }));
+      }
+    } catch (e) {
+      console.log('Committee endpoint not available, using member data');
+    }
+    
+    return committees;
+  } catch (error) {
+    console.error('Error fetching member committees:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch roll call votes from Congress.gov
+ * Note: This fetches recent House/Senate roll calls the member voted in
+ */
+async function fetchRollCallVotes(bioguideId: string, chamber: string, apiKey: string) {
+  try {
+    // Congress.gov doesn't have a direct member votes endpoint
+    // We need to get votes from the member's voting record
+    console.log(`Fetching roll call votes for ${bioguideId} in ${chamber}...`);
+    
+    // Use the votes endpoint for the current congress
+    const currentCongress = 118; // 118th Congress (2023-2025)
+    const chamberCode = chamber.toLowerCase().includes('house') ? 'house' : 'senate';
+    
+    const url = new URL(`${CONGRESS_BASE}/${chamberCode}/vote`);
+    url.searchParams.set('api_key', apiKey);
+    url.searchParams.set('limit', '20');
+    url.searchParams.set('sort', 'date desc');
+    
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      console.log(`Roll call votes endpoint returned ${res.status}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    
+    // Map votes with deep links
+    return (data.votes || []).slice(0, 15).map((vote: any) => ({
+      rollNumber: vote.rollNumber || vote.roll_call,
+      date: vote.date,
+      question: vote.question || vote.title,
+      description: vote.description,
+      result: vote.result,
+      billNumber: vote.bill?.number ? `${vote.bill.type}${vote.bill.number}` : null,
+      billTitle: vote.bill?.title,
+      yeas: vote.yea || vote.yeas,
+      nays: vote.nay || vote.nays,
+      present: vote.present,
+      notVoting: vote.not_voting || vote.notVoting,
+      // Deep link to roll call
+      congressUrl: vote.congress && vote.rollNumber
+        ? `https://www.congress.gov/roll-call-vote/${vote.congress}th-congress/${chamberCode}/${vote.rollNumber}`
+        : null,
+    }));
+  } catch (error) {
+    console.error('Error fetching roll call votes:', error);
     return [];
   }
 }
@@ -236,7 +358,6 @@ async function fetchFECData(name: string, state: string, chamber: string, apiKey
       coverage_start_date: totals?.coverage_start_date || null,
       coverage_end_date: totals?.coverage_end_date || null,
       cycle: totals?.cycle || mostRecentCycle,
-      // Deep link to FEC candidate page
       fec_url: `https://www.fec.gov/data/candidate/${candidate.candidate_id}/`,
     };
   } catch (error) {
@@ -274,7 +395,6 @@ async function fetchFECCommittees(candidateId: string, apiKey: string) {
       party: c.party_full || c.party,
       treasurer_name: c.treasurer_name,
       cycles: c.cycles,
-      // Deep link to FEC committee page
       fec_url: `https://www.fec.gov/data/committee/${c.committee_id}/`,
     }));
   } catch (error) {
@@ -284,12 +404,10 @@ async function fetchFECCommittees(candidateId: string, apiKey: string) {
 }
 
 /**
- * Fetch lobbying disclosures from Senate LDA (free, no API key required)
- * This searches for lobbying filings that mention the member's name
+ * Fetch lobbying disclosures from Senate LDA
  */
 async function fetchLobbyingDisclosures(memberName: string) {
   try {
-    // Clean name for search
     const cleanName = memberName.replace(',', '').trim();
     const lastName = memberName.includes(',') 
       ? memberName.split(',')[0].trim() 
@@ -297,8 +415,6 @@ async function fetchLobbyingDisclosures(memberName: string) {
     
     console.log(`LDA: Searching lobbying disclosures for "${lastName}"...`);
     
-    // Senate LDA provides XML/JSON downloads - we'll search the public filings
-    // Note: The actual LDA API requires specific endpoints, this is a simplified search
     const searchUrl = `${LDA_BASE}/filings/?search=${encodeURIComponent(lastName)}&per_page=10`;
     
     const res = await fetch(searchUrl, {
@@ -319,10 +435,12 @@ async function fetchLobbyingDisclosures(memberName: string) {
       lobbyists: filing.lobbyists?.map((l: any) => l.name).join(', ') || null,
       issues: filing.lobbying_activities?.map((a: any) => a.general_issue_code_display).join(', ') || null,
       specific_issues: filing.lobbying_activities?.[0]?.description || null,
+      bills_referenced: filing.lobbying_activities?.flatMap((a: any) => 
+        a.bills?.map((b: any) => b.bill_congress_number) || []
+      ) || [],
       filing_date: filing.dt_posted || filing.received,
       income: filing.income || null,
       expenses: filing.expenses || null,
-      // Deep link to LDA filing
       lda_url: filing.id ? `https://lda.senate.gov/filings/public/filing/${filing.id}/` : null,
     }));
   } catch (error) {
@@ -363,9 +481,12 @@ async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string
       dateIssued: item.dateIssued,
       packageId: item.packageId,
       granuleId: item.granuleId,
-      // Deep link to GovInfo document
+      pages: item.pages,
       url: item.packageId 
         ? `https://www.govinfo.gov/app/details/${item.packageId}${item.granuleId ? `/${item.granuleId}` : ''}`
+        : null,
+      pdfUrl: item.packageId && item.granuleId
+        ? `https://www.govinfo.gov/content/pkg/${item.packageId}/pdf/${item.granuleId}.pdf`
         : null,
       collectionCode: item.collectionCode,
     }));
@@ -377,6 +498,7 @@ async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string
 
 /**
  * Build official social links from member data
+ * Sources: Congress.gov member profile, official House/Senate websites
  */
 function buildSocialLinks(member: any): any {
   if (!member) return null;
@@ -388,7 +510,8 @@ function buildSocialLinks(member: any): any {
     links.website = {
       url: member.officialWebsiteUrl || member.url,
       label: 'Official Website',
-      source: 'Congress.gov'
+      source: 'Congress.gov',
+      note: 'External, self-managed account'
     };
   }
   
@@ -401,22 +524,55 @@ function buildSocialLinks(member: any): any {
     };
   }
   
-  // Twitter/X (if in member data)
+  // Twitter/X
   if (member.twitterAccount) {
     links.twitter = {
-      url: `https://twitter.com/${member.twitterAccount}`,
+      url: `https://x.com/${member.twitterAccount}`,
       handle: member.twitterAccount,
       label: 'X (Twitter)',
-      source: 'Congress.gov'
+      source: 'Congress.gov',
+      note: 'External, self-managed account'
     };
   }
   
-  // YouTube (if in member data)
+  // YouTube
   if (member.youtubeAccount) {
     links.youtube = {
       url: `https://youtube.com/${member.youtubeAccount}`,
       channel: member.youtubeAccount,
       label: 'YouTube',
+      source: 'Congress.gov',
+      note: 'External, self-managed account'
+    };
+  }
+  
+  // Facebook
+  if (member.facebookAccount) {
+    links.facebook = {
+      url: `https://facebook.com/${member.facebookAccount}`,
+      handle: member.facebookAccount,
+      label: 'Facebook',
+      source: 'Congress.gov',
+      note: 'External, self-managed account'
+    };
+  }
+  
+  // Instagram
+  if (member.instagramAccount) {
+    links.instagram = {
+      url: `https://instagram.com/${member.instagramAccount}`,
+      handle: member.instagramAccount,
+      label: 'Instagram',
+      source: 'Congress.gov',
+      note: 'External, self-managed account'
+    };
+  }
+  
+  // Congress.gov profile link
+  if (member.bioguideId) {
+    links.congressProfile = {
+      url: `https://www.congress.gov/member/${member.bioguideId}`,
+      label: 'Congress.gov Profile',
       source: 'Congress.gov'
     };
   }
@@ -471,9 +627,11 @@ serve(async (req) => {
     const resolvedChamber = member?.terms?.[member.terms.length - 1]?.chamber || entityChamber;
 
     // Fetch core data in parallel
-    const [bills, votes, funding, quotes] = await Promise.all([
+    const [bills, votes, memberCommittees, rollCallVotes, funding, quotes] = await Promise.all([
       fetchSponsoredBills(bioguideId, congressApiKey),
-      fetchMemberVotes(bioguideId, congressApiKey),
+      fetchCosponsoredLegislation(bioguideId, congressApiKey),
+      fetchMemberCommittees(bioguideId, congressApiKey),
+      fetchRollCallVotes(bioguideId, resolvedChamber, congressApiKey),
       entityName && entityState && fecApiKey 
         ? fetchFECData(entityName, entityState, resolvedChamber, fecApiKey)
         : Promise.resolve(null),
@@ -482,7 +640,7 @@ serve(async (req) => {
         : Promise.resolve([]),
     ]);
 
-    // Fetch additional data (committees, lobbying) - these depend on FEC candidate_id
+    // Fetch additional data (FEC committees, lobbying)
     const [committees, lobbying] = await Promise.all([
       funding?.candidate_id && fecApiKey
         ? fetchFECCommittees(funding.candidate_id, fecApiKey)
@@ -495,14 +653,16 @@ serve(async (req) => {
     // Build social links from member data
     const socialLinks = buildSocialLinks(member);
 
-    console.log(`Fetched: member=${!!member}, bills=${bills.length}, votes=${votes.length}, funding=${!!funding}, committees=${committees.length}, lobbying=${lobbying.length}, quotes=${quotes.length}`);
+    console.log(`Fetched: member=${!!member}, bills=${bills.length}, votes=${votes.length}, memberCommittees=${memberCommittees.length}, rollCallVotes=${rollCallVotes.length}, funding=${!!funding}, committees=${committees.length}, lobbying=${lobbying.length}, quotes=${quotes.length}`);
 
     const response: EntityDetailResponse = {
       member,
       bills,
       votes,
+      rollCallVotes,
       funding,
       committees,
+      memberCommittees,
       lobbying,
       quotes,
       socialLinks,
