@@ -119,17 +119,35 @@ async function fetchFECData(name: string, state: string, apiKey: string) {
 
 async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string) {
   try {
-    // Search Congressional Record for mentions of the member
-    const url = new URL(`${GOVINFO_BASE}/search`);
-    url.searchParams.set('api_key', apiKey);
-    url.searchParams.set('collection', 'CREC');
-    url.searchParams.set('query', memberName);
-    url.searchParams.set('pageSize', '10');
+    // GovInfo API uses POST for search
+    const searchUrl = `${GOVINFO_BASE}/search?api_key=${apiKey}`;
     
-    console.log(`Fetching Congressional Record quotes for ${memberName}...`);
-    const res = await fetch(url.toString());
+    // Clean name for search (remove comma formatting)
+    const cleanName = memberName.replace(',', '').trim();
+    
+    console.log(`Fetching Congressional Record quotes for ${cleanName}...`);
+    
+    const res = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: cleanName,
+        pageSize: 10,
+        offsetMark: '*',
+        sorts: [
+          { field: 'dateIssued', sortOrder: 'DESC' }
+        ],
+        filters: [
+          { field: 'collectionCode', value: 'CREC' }
+        ]
+      }),
+    });
+    
     if (!res.ok) {
-      console.error(`GovInfo error: ${res.status}`);
+      const errorText = await res.text();
+      console.error(`GovInfo error: ${res.status} - ${errorText}`);
       return [];
     }
     
@@ -140,7 +158,7 @@ async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string
       dateIssued: item.dateIssued,
       packageId: item.packageId,
       granuleId: item.granuleId,
-      url: item.download?.pdfLink || item.pdfUrl,
+      url: `https://www.govinfo.gov/app/details/${item.packageId}`,
       collectionCode: item.collectionCode,
     }));
   } catch (error) {
