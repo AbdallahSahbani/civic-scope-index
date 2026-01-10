@@ -4,14 +4,14 @@ import { Badge } from '@/components/ui/badge';
 
 // Current President - This should be updated when administration changes
 const CURRENT_PRESIDENT = {
-  id: 'B000589', // Joe Biden's bioguide ID
-  name: 'Biden, Joseph R., Jr.',
-  displayName: 'Joseph R. Biden Jr.',
+  id: 'T000523', // Donald Trump's bioguide ID
+  name: 'Trump, Donald J.',
+  displayName: 'Donald J. Trump',
   role: 'President of the United States',
-  party: 'Democratic',
-  state: 'Delaware',
-  photoUrl: 'https://www.whitehouse.gov/wp-content/uploads/2021/01/P20210303AS-1901-cropped.jpg',
-  term: '46th President (2021–present)',
+  party: 'Republican',
+  state: 'Florida',
+  photoUrl: 'https://www.whitehouse.gov/wp-content/uploads/2025/01/47-Donald-J-Trump.jpg',
+  term: '47th President (2025–present)',
 };
 
 function getInitials(name: string): string {
@@ -104,7 +104,7 @@ export function PresidentCard() {
             </p>
 
             <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+              <Badge variant="outline" className="text-xs bg-red-100 text-red-800 border-red-200">
                 {CURRENT_PRESIDENT.party}
               </Badge>
               <span className="text-xs text-muted-foreground">
