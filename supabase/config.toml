@@ -1,1 +1,7 @@
 project_id = "wlmefliezatakbnkctbv"
+
+[functions.roster]
+verify_jwt = false
+
+[functions.entity-data]
+verify_jwt = false
