@@ -334,35 +334,42 @@ export default function OfficialProfile() {
                     <AccordionContent>
                       {details.bills.length > 0 ? (
                         <div className="space-y-3 pt-2">
-                          {details.bills.slice(0, 10).map((bill: any, i: number) => (
-                            <div key={i} className="bg-muted/50 rounded-lg p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="font-medium text-foreground text-sm">
-                                    {bill.type}{bill.number}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {bill.title}
-                                  </p>
-                                  {bill.latestAction && (
-                                    <p className="text-xs text-muted-foreground/70 mt-2">
-                                      Latest: {bill.latestAction.text} ({bill.latestAction.actionDate})
+                          {details.bills.slice(0, 10).map((bill: any, i: number) => {
+                            // Build public Congress.gov URL instead of API URL
+                            const publicBillUrl = bill.congress && bill.type && bill.number
+                              ? `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.type.toLowerCase().replace('.', '')}-bill/${bill.number}`
+                              : null;
+                            
+                            return (
+                              <div key={i} className="bg-muted/50 rounded-lg p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="font-medium text-foreground text-sm">
+                                      {bill.type}{bill.number}
                                     </p>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {bill.title}
+                                    </p>
+                                    {bill.latestAction && (
+                                      <p className="text-xs text-muted-foreground/70 mt-2">
+                                        Latest: {bill.latestAction.text} ({bill.latestAction.actionDate})
+                                      </p>
+                                    )}
+                                  </div>
+                                  {publicBillUrl && (
+                                    <a
+                                      href={publicBillUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:text-primary/80 shrink-0"
+                                    >
+                                      <ExternalLink className="h-4 w-4" />
+                                    </a>
                                   )}
                                 </div>
-                                {bill.url && (
-                                  <a
-                                    href={bill.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:text-primary/80 shrink-0"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground py-2">
@@ -386,30 +393,37 @@ export default function OfficialProfile() {
                     <AccordionContent>
                       {details.votes.length > 0 ? (
                         <div className="space-y-3 pt-2">
-                          {details.votes.slice(0, 10).map((vote: any, i: number) => (
-                            <div key={i} className="bg-muted/50 rounded-lg p-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="font-medium text-foreground text-sm">
-                                    {vote.billNumber}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {vote.title}
-                                  </p>
+                          {details.votes.slice(0, 10).map((vote: any, i: number) => {
+                            // Build public Congress.gov URL instead of API URL
+                            const publicBillUrl = vote.congress && vote.billNumber
+                              ? `https://www.congress.gov/bill/${vote.congress}th-congress/${vote.billNumber.toLowerCase().replace('.', '-').replace(/(\d+)/, 'bill/$1')}`
+                              : null;
+                            
+                            return (
+                              <div key={i} className="bg-muted/50 rounded-lg p-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="font-medium text-foreground text-sm">
+                                      {vote.billNumber}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {vote.title}
+                                    </p>
+                                  </div>
+                                  {publicBillUrl && (
+                                    <a
+                                      href={publicBillUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:text-primary/80 shrink-0"
+                                    >
+                                      <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                  )}
                                 </div>
-                                {vote.url && (
-                                  <a
-                                    href={vote.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:text-primary/80 shrink-0"
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                  </a>
-                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground py-2">
