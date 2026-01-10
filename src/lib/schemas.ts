@@ -1,15 +1,16 @@
 // Canonical entity shape - single source of truth for real officials data
 
-export type EntitySource = 'congress' | 'openstates';
+export type EntitySource = 'congress' | 'openstates' | 'curated';
 
 export interface RosterEntity {
   id: string;               // bioguideId or OpenStates ID
   name: string;
-  role: string;             // e.g. "U.S. Senator", "State Representative"
-  chamber: 'Federal' | 'State';
+  role: string;             // e.g. "U.S. Senator", "State Representative", "Governor", "Mayor"
+  chamber: 'Federal' | 'State' | 'Executive' | 'Local';
   party: string;
   state: string;
   district?: string;
+  city?: string;            // For mayors
   source: EntitySource;
   bioguideId?: string;
   photoUrl?: string;        // Official portrait URL from Congress.gov

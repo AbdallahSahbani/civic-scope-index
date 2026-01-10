@@ -11,11 +11,11 @@ import { US_STATES } from '@/lib/types';
 
 interface RosterFiltersProps {
   search: string;
-  chamber: 'all' | 'Federal' | 'State';
+  chamber: 'all' | 'Federal' | 'State' | 'Executive' | 'Local';
   state: string;
   party: string;
   onSearchChange: (value: string) => void;
-  onChamberChange: (value: 'all' | 'Federal' | 'State') => void;
+  onChamberChange: (value: 'all' | 'Federal' | 'State' | 'Executive' | 'Local') => void;
   onStateChange: (value: string) => void;
   onPartyChange: (value: string) => void;
 }
@@ -29,8 +29,10 @@ const PARTIES = [
 
 const CHAMBERS = [
   { value: 'all', label: 'All Levels' },
-  { value: 'Federal', label: 'Federal' },
-  { value: 'State', label: 'State' },
+  { value: 'Federal', label: 'Federal (Congress)' },
+  { value: 'Executive', label: 'Executive (Governors)' },
+  { value: 'State', label: 'State (Legislators)' },
+  { value: 'Local', label: 'Local (Mayors)' },
 ];
 
 export function RosterFilters({
@@ -58,7 +60,7 @@ export function RosterFilters({
         </div>
 
         {/* Chamber/Level */}
-        <Select value={chamber} onValueChange={(v) => onChamberChange(v as 'all' | 'Federal' | 'State')}>
+        <Select value={chamber} onValueChange={(v) => onChamberChange(v as 'all' | 'Federal' | 'State' | 'Executive' | 'Local')}>
           <SelectTrigger>
             <SelectValue placeholder="Select level" />
           </SelectTrigger>

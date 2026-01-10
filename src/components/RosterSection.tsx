@@ -11,7 +11,7 @@ import { Toggle } from '@/components/ui/toggle';
 
 export function RosterSection() {
   const [search, setSearch] = useState('');
-  const [chamber, setChamber] = useState<'all' | 'Federal' | 'State'>('all');
+  const [chamber, setChamber] = useState<'all' | 'Federal' | 'State' | 'Executive' | 'Local'>('all');
   const [state, setState] = useState('ALL');
   const [party, setParty] = useState('all');
   const [gridView, setGridView] = useState(false);

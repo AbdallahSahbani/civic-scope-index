@@ -26,8 +26,10 @@ function getPartyColor(party: string): string {
   return 'bg-muted text-muted-foreground border-border';
 }
 
-function getChamberIcon(chamber: 'Federal' | 'State') {
-  return chamber === 'Federal' ? Building : User;
+function getChamberIcon(chamber: 'Federal' | 'State' | 'Executive' | 'Local') {
+  if (chamber === 'Federal') return Building;
+  if (chamber === 'Executive') return Building;
+  return User;
 }
 
 export function RosterCard({ entity, compact = false }: RosterCardProps) {
@@ -160,7 +162,7 @@ export function RosterCard({ entity, compact = false }: RosterCardProps) {
           </p>
 
           <p className="mt-1 text-xs text-muted-foreground/70">
-            Source: {entity.source === 'congress' ? 'Congress.gov' : 'OpenStates'}
+            Source: {entity.source === 'congress' ? 'Congress.gov' : entity.source === 'openstates' ? 'OpenStates' : 'Official Records'}
           </p>
         </div>
 
