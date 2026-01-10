@@ -109,7 +109,7 @@
 }
 
 @layer base {
-  /* Cool subtle background with blue-tinted pattern */
+  /* Paper texture background with soft overlay for readability */
   body::before {
     content: '';
     position: fixed;
@@ -119,32 +119,30 @@
     bottom: 0;
     pointer-events: none;
     z-index: -1;
-    background-image: 
-      /* Cool blue gradient wash - primary background tint */
-      linear-gradient(180deg, hsl(210 30% 96%) 0%, hsl(210 25% 97%) 50%, hsl(210 20% 98%) 100%),
-      /* Blue stars - top left area */
-      radial-gradient(circle at 5% 8%, hsl(var(--civic-blue) / 0.1) 2px, transparent 2px),
-      radial-gradient(circle at 12% 15%, hsl(var(--civic-blue) / 0.08) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 3% 25%, hsl(var(--civic-blue) / 0.06) 2px, transparent 2px),
-      radial-gradient(circle at 18% 5%, hsl(var(--civic-blue) / 0.09) 1px, transparent 1px),
-      /* Red dots - top right area (subtle) */
-      radial-gradient(circle at 92% 12%, hsl(var(--civic-red) / 0.05) 2px, transparent 2px),
-      radial-gradient(circle at 85% 8%, hsl(var(--civic-red) / 0.04) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 95% 22%, hsl(var(--civic-red) / 0.045) 1px, transparent 1px),
-      /* Blue stars - bottom right */
-      radial-gradient(circle at 88% 85%, hsl(var(--civic-blue) / 0.08) 2px, transparent 2px),
-      radial-gradient(circle at 95% 92%, hsl(var(--civic-blue) / 0.06) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 82% 95%, hsl(var(--civic-blue) / 0.09) 1px, transparent 1px),
-      /* Red dots - bottom left (subtle) */
-      radial-gradient(circle at 8% 88%, hsl(var(--civic-red) / 0.045) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 15% 92%, hsl(var(--civic-red) / 0.04) 2px, transparent 2px),
-      /* Scattered subtle stars across middle - more blue-tinted */
-      radial-gradient(circle at 35% 45%, hsl(var(--civic-blue) / 0.04) 1px, transparent 1px),
-      radial-gradient(circle at 65% 55%, hsl(var(--civic-blue) / 0.035) 1px, transparent 1px),
-      radial-gradient(circle at 45% 75%, hsl(var(--civic-blue) / 0.03) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 55% 25%, hsl(var(--civic-blue) / 0.025) 1.5px, transparent 1.5px),
-      /* Cool gradient wash - blue dominant */
-      linear-gradient(135deg, hsl(210 40% 94% / 0.5) 0%, transparent 30%, transparent 70%, hsl(210 35% 95% / 0.4) 100%);
+    background-image: url('/images/paper-texture.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(1px);
+    opacity: 0.4;
+  }
+  
+  /* Semi-transparent overlay for content readability */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: -1;
+    background: linear-gradient(
+      180deg, 
+      hsl(210 25% 97% / 0.92) 0%, 
+      hsl(210 20% 98% / 0.94) 50%, 
+      hsl(210 22% 97% / 0.92) 100%
+    );
   }
 }
 
