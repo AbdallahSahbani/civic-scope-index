@@ -7,12 +7,15 @@ const corsHeaders = {
 
 const CONGRESS_BASE = 'https://api.congress.gov/v3';
 const FEC_BASE = 'https://api.open.fec.gov/v1';
+const GOVINFO_BASE = 'https://api.govinfo.gov';
 
 interface EntityDetailResponse {
   member: any;
   bills: any[];
+  votes: any[];
   funding: any;
-  source: string;
+  quotes: any[];
+  sources: string[];
 }
 
 async function fetchMemberDetails(bioguideId: string, apiKey: string) {
@@ -20,8 +23,12 @@ async function fetchMemberDetails(bioguideId: string, apiKey: string) {
     const url = new URL(`${CONGRESS_BASE}/member/${bioguideId}`);
     url.searchParams.set('api_key', apiKey);
     
+    console.log(`Fetching member details for ${bioguideId}...`);
     const res = await fetch(url.toString());
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`Member details error: ${res.status}`);
+      return null;
+    }
     
     const data = await res.json();
     return data.member || null;
@@ -37,13 +44,52 @@ async function fetchSponsoredBills(bioguideId: string, apiKey: string) {
     url.searchParams.set('api_key', apiKey);
     url.searchParams.set('limit', '20');
     
+    console.log(`Fetching sponsored bills for ${bioguideId}...`);
     const res = await fetch(url.toString());
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(`Bills error: ${res.status}`);
+      return [];
+    }
     
     const data = await res.json();
     return data.sponsoredLegislation || [];
   } catch (error) {
     console.error('Error fetching sponsored bills:', error);
+    return [];
+  }
+}
+
+async function fetchMemberVotes(bioguideId: string, apiKey: string, chamber: string) {
+  try {
+    // Congress.gov doesn't have direct member votes endpoint, so we fetch recent roll call votes
+    // and note which ones the member participated in
+    const currentCongress = 118; // Current congress
+    const url = new URL(`${CONGRESS_BASE}/member/${bioguideId}`);
+    url.searchParams.set('api_key', apiKey);
+    
+    console.log(`Fetching votes for ${bioguideId}...`);
+    
+    // Get member's voting record via their cosponsored legislation as a proxy
+    const cosponsoredUrl = new URL(`${CONGRESS_BASE}/member/${bioguideId}/cosponsored-legislation`);
+    cosponsoredUrl.searchParams.set('api_key', apiKey);
+    cosponsoredUrl.searchParams.set('limit', '15');
+    
+    const res = await fetch(cosponsoredUrl.toString());
+    if (!res.ok) return [];
+    
+    const data = await res.json();
+    
+    // Transform cosponsored legislation into vote-like records
+    return (data.cosponsoredLegislation || []).map((item: any) => ({
+      type: 'cosponsored',
+      billNumber: `${item.type}${item.number}`,
+      title: item.title,
+      congress: item.congress,
+      latestAction: item.latestAction,
+      url: item.url,
+    }));
+  } catch (error) {
+    console.error('Error fetching votes:', error);
     return [];
   }
 }
@@ -56,14 +102,50 @@ async function fetchFECData(name: string, state: string, apiKey: string) {
     url.searchParams.set('state', state);
     url.searchParams.set('per_page', '5');
     
+    console.log(`Fetching FEC data for ${name} (${state})...`);
     const res = await fetch(url.toString());
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`FEC error: ${res.status}`);
+      return null;
+    }
     
     const data = await res.json();
     return data.results?.[0] || null;
   } catch (error) {
     console.error('Error fetching FEC data:', error);
     return null;
+  }
+}
+
+async function fetchCongressionalRecordQuotes(memberName: string, apiKey: string) {
+  try {
+    // Search Congressional Record for mentions of the member
+    const url = new URL(`${GOVINFO_BASE}/search`);
+    url.searchParams.set('api_key', apiKey);
+    url.searchParams.set('collection', 'CREC');
+    url.searchParams.set('query', memberName);
+    url.searchParams.set('pageSize', '10');
+    
+    console.log(`Fetching Congressional Record quotes for ${memberName}...`);
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      console.error(`GovInfo error: ${res.status}`);
+      return [];
+    }
+    
+    const data = await res.json();
+    
+    return (data.results || []).map((item: any) => ({
+      title: item.title,
+      dateIssued: item.dateIssued,
+      packageId: item.packageId,
+      granuleId: item.granuleId,
+      url: item.download?.pdfLink || item.pdfUrl,
+      collectionCode: item.collectionCode,
+    }));
+  } catch (error) {
+    console.error('Error fetching Congressional Record:', error);
+    return [];
   }
 }
 
@@ -87,28 +169,41 @@ serve(async (req) => {
 
     const congressApiKey = Deno.env.get('CONGRESS_API_KEY');
     const fecApiKey = Deno.env.get('FEC_API_KEY');
+    const govInfoApiKey = Deno.env.get('GOVINFO_API_KEY');
 
     if (!congressApiKey) {
       return new Response(
-        JSON.stringify({ error: 'API configuration error' }),
+        JSON.stringify({ error: 'Congress API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Fetch all data in parallel
-    const [member, bills, funding] = await Promise.all([
+    const [member, bills, votes, funding, quotes] = await Promise.all([
       fetchMemberDetails(bioguideId, congressApiKey),
       fetchSponsoredBills(bioguideId, congressApiKey),
+      fetchMemberVotes(bioguideId, congressApiKey, ''),
       entityName && entityState && fecApiKey 
         ? fetchFECData(entityName, entityState, fecApiKey)
         : Promise.resolve(null),
+      entityName && govInfoApiKey
+        ? fetchCongressionalRecordQuotes(entityName, govInfoApiKey)
+        : Promise.resolve([]),
     ]);
+
+    console.log(`Fetched: member=${!!member}, bills=${bills.length}, votes=${votes.length}, funding=${!!funding}, quotes=${quotes.length}`);
 
     const response: EntityDetailResponse = {
       member,
       bills,
+      votes,
       funding,
-      source: 'congress.gov',
+      quotes,
+      sources: [
+        'Congress.gov',
+        'Federal Election Commission',
+        'GovInfo Congressional Record',
+      ],
     };
 
     return new Response(
