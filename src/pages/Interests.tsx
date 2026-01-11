@@ -32,12 +32,12 @@ export default function InterestsPage() {
   const { items, remove, isLoaded } = useInterests();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1 relative overflow-hidden">
-        {/* Spline Background Layer */}
-        <div className="absolute inset-0 -z-10">
+      <main className="flex-1 relative">
+        {/* Spline Background Layer - full coverage */}
+        <div className="absolute inset-0 z-0 bg-black">
           <Suspense fallback={
             <div className="w-full h-full bg-gradient-to-br from-civic-navy via-civic-slate to-civic-navy" />
           }>
