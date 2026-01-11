@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import EntityProfile from "./pages/EntityProfile";
 import OfficialProfile from "./pages/OfficialProfile";
+import Interests from "./pages/Interests";
 import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/entity/:id" element={<EntityProfile />} />
           <Route path="/official/:id" element={<OfficialProfile />} />
+          <Route path="/interests" element={<Interests />} />
           <Route path="/legal" element={<Legal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

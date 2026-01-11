@@ -6,6 +6,7 @@ import { ChatDrawer } from '@/components/ChatDrawer';
 import { ProfileChat } from '@/components/ProfileChat';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useInterests } from '@/hooks/useInterests';
 import { 
   ArrowLeft, 
   Building, 
@@ -24,7 +25,9 @@ import {
   Gavel,
   BookOpen,
   Youtube,
-  Instagram
+  Instagram,
+  Heart,
+  HeartOff
 } from 'lucide-react';
 import { RosterEntity } from '@/lib/schemas';
 import {
@@ -112,6 +115,7 @@ export default function OfficialProfile() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { add, remove, has } = useInterests();
   
   const passedEntity = location.state?.entity as RosterEntity | undefined;
   
@@ -401,9 +405,48 @@ export default function OfficialProfile() {
                 </div>
 
                 <div className="flex-1">
-                  <h1 className="text-2xl font-serif font-semibold text-foreground mb-2">
-                    {entity.name}
-                  </h1>
+                  <div className="flex items-start justify-between gap-4">
+                    <h1 className="text-2xl font-serif font-semibold text-foreground mb-2">
+                      {entity.name}
+                    </h1>
+                    
+                    {/* Add to Interests button */}
+                    {entity.bioguideId && (
+                      <Button
+                        variant={has(entity.bioguideId) ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          if (has(entity.bioguideId!)) {
+                            remove(entity.bioguideId!);
+                          } else {
+                            add({
+                              id: entity.bioguideId!,
+                              name: entity.name,
+                              party: entity.party,
+                              entityType: 'official',
+                              photoUrl: entity.photoUrl || details?.member?.depiction?.imageUrl,
+                              jurisdiction: entity.chamber,
+                              state: entity.state,
+                              role: entity.role,
+                            });
+                          }
+                        }}
+                        className="shrink-0"
+                      >
+                        {has(entity.bioguideId) ? (
+                          <>
+                            <HeartOff className="h-4 w-4 mr-1" />
+                            Remove
+                          </>
+                        ) : (
+                          <>
+                            <Heart className="h-4 w-4 mr-1" />
+                            Add to Interests
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   
                   <p className="text-lg text-muted-foreground mb-4">
                     {entity.role}
