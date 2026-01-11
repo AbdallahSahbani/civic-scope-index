@@ -38,7 +38,7 @@ export function InterestCard({ item, onRemove }: InterestCardProps) {
   const partyStyles = getPartyStyles(item.party);
 
   return (
-    <div className={`relative w-64 rounded-xl border-4 ${partyStyles.border} bg-white/95 shadow-2xl overflow-hidden transform hover:scale-105 transition-transform duration-300`}>
+    <div className={`relative w-full max-w-[280px] mx-auto rounded-xl border-4 ${partyStyles.border} bg-card shadow-xl overflow-hidden transform hover:scale-[1.02] hover:shadow-2xl transition-all duration-300`}>
       {/* Header with name */}
       <div className={`${partyStyles.header} py-3 px-4 text-center`}>
         <h3 className="text-white font-bold text-lg font-serif truncate">{item.name}</h3>

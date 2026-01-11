@@ -14,34 +14,44 @@ export default function InterestsPage() {
   const { items, remove, isLoaded } = useInterests();
 
   return (
-    <div className="min-h-screen flex flex-col bg-black">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="flex-1 relative overflow-hidden">
-        {/* Spline Background Layer - full coverage */}
-        <div className="absolute inset-0 z-0">
-          <Suspense fallback={
-            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" />
-          }>
-            <Spline 
-              scene="https://prod.spline.design/nRGcGcylZYBvn8YY/scene.splinecode" 
-              style={{ width: '100%', height: '100%' }}
-            />
-          </Suspense>
+      <main className="flex-1 relative">
+        {/* Background paper texture - lowest layer */}
+        <div className="absolute inset-0 z-0" />
+
+        {/* Spline container - constrained height, above texture, below content */}
+        <div className="relative w-full h-[420px] overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Suspense fallback={
+              <div className="w-full h-full bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" />
+            }>
+              <Spline 
+                scene="https://prod.spline.design/nRGcGcylZYBvn8YY/scene.splinecode" 
+                style={{ width: '100%', height: '100%' }}
+              />
+            </Suspense>
+          </div>
+          
+          {/* Dark translucent overlay for readability */}
+          <div className="absolute inset-0 z-10 bg-black/85" />
+          
+          {/* Title floats above overlay */}
+          <div className="absolute inset-0 z-20 flex items-center justify-center">
+            <h1 className="text-4xl md:text-5xl font-bold font-serif text-white drop-shadow-lg">
+              Interests
+            </h1>
+          </div>
         </div>
 
-        {/* Content floating above Spline */}
-        <div className="relative z-10 container py-12 min-h-[calc(100vh-200px)] flex flex-col">
-          {/* Title */}
-          <h1 className="text-4xl md:text-5xl font-bold font-serif text-white text-center mb-12 drop-shadow-lg">
-            Interests
-          </h1>
-
+        {/* Content section - above Spline */}
+        <div className="relative z-10 container py-12">
           {!isLoaded ? (
-            <div className="text-white/80 text-center">Loading...</div>
+            <div className="text-muted-foreground text-center">Loading...</div>
           ) : items.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-8 text-center max-w-md shadow-2xl">
+            <div className="flex items-center justify-center py-16">
+              <div className="glass-card rounded-xl p-8 text-center max-w-md shadow-2xl">
                 <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                 <h2 className="text-2xl font-serif font-semibold text-foreground mb-3">
                   No saved profiles yet
@@ -55,21 +65,11 @@ export default function InterestsPage() {
               </div>
             </div>
           ) : (
-            /* Cards displayed in a horizontal flex with perspective */
-            <div className="flex-1 flex items-center justify-center">
-              <div className="flex flex-wrap justify-center gap-8 px-4">
-                {items.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="transform transition-all duration-500"
-                    style={{
-                      transform: `perspective(1000px) rotateY(${(index - Math.floor(items.length / 2)) * 5}deg)`,
-                    }}
-                  >
-                    <InterestCard item={item} onRemove={remove} />
-                  </div>
-                ))}
-              </div>
+            /* Responsive grid layout for cards */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {items.map((item) => (
+                <InterestCard key={item.id} item={item} onRemove={remove} />
+              ))}
             </div>
           )}
         </div>
