@@ -68,8 +68,8 @@ export function Header() {
           
           <div className="text-center">
             {isMediaWatch ? (
-              /* Media Watch Spline logo */
-              <div className="w-full max-w-[1200px] h-[300px] mx-auto overflow-hidden">
+              /* Media Watch Spline logo - sized like a title */
+              <div className="w-[320px] h-[80px] mx-auto overflow-hidden scale-150 origin-center">
                 <Suspense fallback={
                   <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 animate-pulse" />
                 }>
