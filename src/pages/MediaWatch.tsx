@@ -35,7 +35,7 @@ export default function MediaWatchPage() {
           
           {/* Title centered */}
           <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="text-center">
+            <div className="text-center px-8 py-6 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
               <h1 className="text-4xl md:text-5xl font-bold font-serif text-white drop-shadow-lg flex items-center justify-center gap-4">
                 <Tv className="h-10 w-10 text-slate-400" />
                 Media Watch
