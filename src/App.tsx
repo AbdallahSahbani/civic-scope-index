@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import EntityProfile from "./pages/EntityProfile";
 import OfficialProfile from "./pages/OfficialProfile";
 import Interests from "./pages/Interests";
+import MediaWatch from "./pages/MediaWatch";
+import MediaProfile from "./pages/MediaProfile";
 import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +25,8 @@ const App = () => (
           <Route path="/entity/:id" element={<EntityProfile />} />
           <Route path="/official/:id" element={<OfficialProfile />} />
           <Route path="/interests" element={<Interests />} />
+          <Route path="/media-watch" element={<MediaWatch />} />
+          <Route path="/media/:id" element={<MediaProfile />} />
           <Route path="/legal" element={<Legal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
