@@ -19,6 +19,15 @@ export function Header() {
         </Suspense>
       </div>
       
+      {/* Black box to cover "Built by Spline" watermark + Legal & Method button */}
+      <Link 
+        to="/legal" 
+        className="absolute bottom-2 right-2 z-20 bg-black text-white text-xs px-3 py-2 hover:bg-black/80 transition-colors"
+        style={{ minWidth: '120px', textAlign: 'center' }}
+      >
+        Legal & Method
+      </Link>
+      
       {/* Gradient overlay for text readability */}
       <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/30 via-transparent to-black/50" />
       
@@ -43,14 +52,7 @@ export function Header() {
             </Link>
           </div>
           
-          <div className="flex-1 flex justify-end">
-            <Link 
-              to="/legal" 
-              className="text-sm text-white/70 hover:text-white transition-colors backdrop-blur-sm px-3 py-1 rounded-full border border-white/20 hover:border-white/40"
-            >
-              Legal & Method
-            </Link>
-          </div>
+          <div className="flex-1" />
         </div>
       </div>
       
