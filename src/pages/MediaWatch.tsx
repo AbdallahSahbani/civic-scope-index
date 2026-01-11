@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { useMediaWatch } from '@/hooks/useMediaWatch';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Tv } from 'lucide-react';
 import { MediaCard } from '@/components/MediaCard';
+
+// Lazy load Spline to prevent crashes
+const Spline = lazy(() => import('@splinetool/react-spline'));
 
 export default function MediaWatchPage() {
   const { items, remove, isLoaded } = useMediaWatch();
@@ -43,33 +47,51 @@ export default function MediaWatchPage() {
           </div>
         </div>
 
-        {/* Content section - above Spline */}
-        <div className="relative z-10 container py-12">
-          {!isLoaded ? (
-            <div className="text-muted-foreground text-center">Loading...</div>
-          ) : items.length === 0 ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="glass-card rounded-xl p-8 text-center max-w-md shadow-2xl">
-                <Tv className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h2 className="text-2xl font-serif font-semibold text-foreground mb-3">
-                  No media entities saved yet
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Media tracking is separate from elected officials. Add organizations, executives, or journalists to monitor here.
-                </p>
-                <Button asChild size="lg" variant="secondary">
-                  <Link to="/">Back to Roster</Link>
-                </Button>
+        {/* Content section with Spline background */}
+        <div className="relative min-h-[600px]">
+          {/* Spline background - lowest layer */}
+          <div className="absolute inset-0 z-0">
+            <Suspense fallback={
+              <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+            }>
+              <Spline 
+                scene="https://prod.spline.design/3zobtZIyTeANayj1/scene.splinecode" 
+                style={{ width: '100%', height: '100%' }}
+              />
+            </Suspense>
+          </div>
+          
+          {/* Dark overlay for readability */}
+          <div className="absolute inset-0 z-[1] bg-black/40" />
+
+          {/* Content - above Spline */}
+          <div className="relative z-10 container py-12">
+            {!isLoaded ? (
+              <div className="text-muted-foreground text-center">Loading...</div>
+            ) : items.length === 0 ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="glass-card rounded-xl p-8 text-center max-w-md shadow-2xl bg-background/80 backdrop-blur-sm">
+                  <Tv className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h2 className="text-2xl font-serif font-semibold text-foreground mb-3">
+                    No media entities saved yet
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    Media tracking is separate from elected officials. Add organizations, executives, or journalists to monitor here.
+                  </p>
+                  <Button asChild size="lg" variant="secondary">
+                    <Link to="/">Back to Roster</Link>
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            /* Responsive grid layout for cards */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {items.map((item) => (
-                <MediaCard key={item.id} item={item} onRemove={remove} />
-              ))}
-            </div>
-          )}
+            ) : (
+              /* Responsive grid layout for cards */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {items.map((item) => (
+                  <MediaCard key={item.id} item={item} onRemove={remove} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
