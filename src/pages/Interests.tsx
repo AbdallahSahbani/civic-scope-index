@@ -1,13 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
 import { useInterests } from '@/hooks/useInterests';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { X, ArrowLeft, Heart } from 'lucide-react';
-
-// Lazy load Spline
-const Spline = lazy(() => import('@splinetool/react-spline'));
 
 function getPartyColor(party?: string | null): string {
   if (!party) return 'border-gray-300 bg-white/90';
@@ -35,24 +31,11 @@ export default function InterestsPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="flex-1 relative overflow-hidden">
-        {/* Spline background */}
-        <div className="absolute inset-0 z-0">
-          <Suspense fallback={
-            <div className="w-full h-full bg-gradient-to-br from-civic-navy via-civic-slate to-civic-navy" />
-          }>
-            <Spline
-              scene="https://prod.spline.design/i4aI4hOVrzzRTC52/scene.splinecode"
-              style={{ width: '100%', height: '100%' }}
-            />
-          </Suspense>
-        </div>
-
-        {/* Content overlay */}
-        <div className="relative z-10 container py-8">
+      <main className="flex-1">
+        <div className="container py-8">
           <Link 
             to="/" 
-            className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors mb-6"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Roster
@@ -60,7 +43,7 @@ export default function InterestsPage() {
 
           <div className="flex items-center gap-3 mb-8">
             <Heart className="h-8 w-8 text-patriotic-red fill-patriotic-red" />
-            <h1 className="text-3xl md:text-4xl font-bold font-serif text-white drop-shadow-lg">
+            <h1 className="text-3xl md:text-4xl font-bold font-serif text-foreground">
               Your Interests
             </h1>
           </div>
