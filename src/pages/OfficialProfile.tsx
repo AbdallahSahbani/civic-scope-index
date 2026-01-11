@@ -809,23 +809,53 @@ export default function OfficialProfile() {
                         <Briefcase className="h-5 w-5 text-primary" />
                         <span className="font-semibold">Lobbying Disclosures</span>
                         <Badge variant="secondary" className="ml-2">
-                          {details.lobbying?.length > 0 ? `${details.lobbying.length} filings` : 'None'}
+                          {details.lobbying?.length > 0 
+                            ? details.lobbying.some((f: any) => f.direct_match) 
+                              ? `${details.lobbying.filter((f: any) => f.direct_match).length} direct`
+                              : 'No direct references'
+                            : 'None'}
                         </Badge>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
                       {details.lobbying && details.lobbying.length > 0 ? (
                         <div className="space-y-3 pt-2">
-                          <p className="text-xs text-muted-foreground mb-3">
-                            Lobbying filings referencing this official from Senate Lobbying Disclosure Act (LDA) records.
-                          </p>
+                          {/* Show direct matches with clear labeling */}
+                          {details.lobbying.some((f: any) => f.direct_match) ? (
+                            <p className="text-xs text-muted-foreground mb-3">
+                              Lobbying disclosures referencing this official from Senate LDA records.
+                            </p>
+                          ) : (
+                            <div className="bg-secondary/50 rounded-lg p-3 mb-3">
+                              <p className="text-xs text-muted-foreground">
+                                No lobbying filings directly reference this official. Showing recent filings for context.
+                                <a 
+                                  href={`https://lda.senate.gov/filings/public/search/?search=${encodeURIComponent(
+                                    details?.member?.lastName || entity?.name?.split(' ').pop() || ''
+                                  )}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline ml-1"
+                                >
+                                  Search LDA directly →
+                                </a>
+                              </p>
+                            </div>
+                          )}
                           {details.lobbying.slice(0, 8).map((filing: any, i: number) => (
-                            <div key={i} className="bg-muted/50 rounded-lg p-3">
+                            <div key={i} className={`rounded-lg p-3 ${filing.direct_match ? 'bg-primary/10 border border-primary/20' : 'bg-muted/50'}`}>
                               <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="font-medium text-foreground text-sm">
-                                    {filing.client || 'Unknown Client'}
-                                  </p>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-medium text-foreground text-sm">
+                                      {filing.client || 'Unknown Client'}
+                                    </p>
+                                    {filing.direct_match && (
+                                      <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                                        Direct reference
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <p className="text-xs text-muted-foreground mt-1">
                                     via {filing.registrant || 'Unknown Registrant'}
                                   </p>
@@ -834,9 +864,19 @@ export default function OfficialProfile() {
                                       Issues: {filing.issues}
                                     </p>
                                   )}
-                                  {filing.filing_date && (
+                                  {filing.income && (
+                                    <p className="text-xs text-muted-foreground/70 mt-1">
+                                      Reported income: ${Number(filing.income).toLocaleString()}
+                                    </p>
+                                  )}
+                                  {filing.filing_period && filing.filing_year && (
                                     <p className="text-xs text-muted-foreground/50 mt-1">
-                                      Filed: {filing.filing_date}
+                                      {filing.filing_period}, {filing.filing_year}
+                                    </p>
+                                  )}
+                                  {filing.specific_issues && (
+                                    <p className="text-xs text-muted-foreground/60 mt-2 line-clamp-2">
+                                      "{filing.specific_issues}"
                                     </p>
                                   )}
                                 </div>
@@ -846,7 +886,7 @@ export default function OfficialProfile() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-primary hover:text-primary/80 shrink-0"
-                                    title="View on LDA"
+                                    title="View filing on Senate LDA"
                                   >
                                     <ExternalLink className="h-4 w-4" />
                                   </a>
@@ -854,7 +894,7 @@ export default function OfficialProfile() {
                               </div>
                             </div>
                           ))}
-                          <SourceLink label="Senate LDA" url="https://lda.senate.gov/" />
+                          <SourceLink label="Senate LDA Database" url="https://lda.senate.gov/filings/public/filing/" />
                         </div>
                       ) : (
                         <EmptyState type="lobbying" />

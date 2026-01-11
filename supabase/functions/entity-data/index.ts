@@ -461,44 +461,108 @@ async function fetchFECCommittees(candidateId: string, apiKey: string) {
 
 /**
  * Fetch lobbying disclosures from Senate LDA
+ * Uses the official Senate Lobbying Disclosure API
+ * https://lda.senate.gov/api/
  */
 async function fetchLobbyingDisclosures(memberName: string) {
   try {
+    // Extract last name for search - Senate LDA uses text search on covered_officials
     const cleanName = memberName.replace(',', '').trim();
     const lastName = memberName.includes(',') 
       ? memberName.split(',')[0].trim() 
       : memberName.split(' ').pop() || memberName;
     
-    console.log(`LDA: Searching lobbying disclosures for "${lastName}"...`);
+    console.log(`LDA: Searching lobbying disclosures for official "${lastName}"...`);
     
-    const searchUrl = `${LDA_BASE}/filings/?search=${encodeURIComponent(lastName)}&per_page=10`;
+    // Senate LDA API - search filings that mention this official
+    // The API supports searching by covered_official_name (lobbyist contacts with officials)
+    // and by general text search
+    const searchParams = new URLSearchParams({
+      'filing_dt_posted_after': '2020-01-01',  // Last few years of filings
+      'ordering': '-filing_dt_posted',          // Most recent first
+    });
+    
+    // First try searching in covered officials (who the lobbying contacts targeted)
+    const searchUrl = `${LDA_BASE}/filings/?${searchParams.toString()}`;
+    
+    console.log(`LDA: Fetching recent filings to filter by official...`);
     
     const res = await fetch(searchUrl, {
-      headers: { 'Accept': 'application/json' }
+      headers: { 
+        'Accept': 'application/json',
+        'User-Agent': 'CivicPulse/1.0 (civic transparency platform)'
+      }
     });
     
     if (!res.ok) {
-      console.log(`LDA: Search returned ${res.status}, may not be available`);
+      console.log(`LDA: API returned ${res.status} - ${await res.text().catch(() => 'no body')}`);
       return [];
     }
     
     const data = await res.json();
+    const results = data.results || [];
     
-    return (data.results || []).slice(0, 10).map((filing: any) => ({
-      filing_id: filing.id || filing.filing_uuid,
-      registrant: filing.registrant?.name || filing.registrant_name,
-      client: filing.client?.name || filing.client_name,
-      lobbyists: filing.lobbyists?.map((l: any) => l.name).join(', ') || null,
-      issues: filing.lobbying_activities?.map((a: any) => a.general_issue_code_display).join(', ') || null,
-      specific_issues: filing.lobbying_activities?.[0]?.description || null,
-      bills_referenced: filing.lobbying_activities?.flatMap((a: any) => 
-        a.bills?.map((b: any) => b.bill_congress_number) || []
-      ) || [],
-      filing_date: filing.dt_posted || filing.received,
-      income: filing.income || null,
-      expenses: filing.expenses || null,
-      lda_url: filing.id ? `https://lda.senate.gov/filings/public/filing/${filing.id}/` : null,
-    }));
+    if (results.length === 0) {
+      console.log('LDA: No filings found');
+      return [];
+    }
+    
+    // Filter filings that mention this official in covered officials or lobbying activities
+    const lastNameLower = lastName.toLowerCase();
+    const relevantFilings = results.filter((filing: any) => {
+      // Check if official appears in covered officials
+      const coveredOfficials = filing.conviction_disclosures || [];
+      const mentionsOfficial = coveredOfficials.some((d: any) => 
+        d.covered_position?.toLowerCase().includes(lastNameLower) ||
+        d.description?.toLowerCase().includes(lastNameLower)
+      );
+      
+      // Check lobbying activities for mentions
+      const activities = filing.lobbying_activities || [];
+      const inActivities = activities.some((a: any) =>
+        a.description?.toLowerCase().includes(lastNameLower) ||
+        a.specific_issues?.toLowerCase().includes(lastNameLower)
+      );
+      
+      return mentionsOfficial || inActivities;
+    });
+    
+    console.log(`LDA: Found ${relevantFilings.length} filings mentioning "${lastName}"`);
+    
+    // If no direct matches, return general recent lobbying filings with note
+    const filings = relevantFilings.length > 0 ? relevantFilings : results.slice(0, 10);
+    const isDirectMatch = relevantFilings.length > 0;
+    
+    return filings.slice(0, 10).map((filing: any) => {
+      // Extract the filing UUID for the public URL
+      const filingId = filing.filing_uuid || filing.id;
+      
+      return {
+        filing_id: filingId,
+        registrant: filing.registrant?.name || filing.registrant_name || null,
+        client: filing.client?.name || filing.client_name || null,
+        lobbyists: (filing.lobbyists || []).map((l: any) => l.lobbyist?.name || l.name).filter(Boolean).join(', ') || null,
+        issues: (filing.lobbying_activities || [])
+          .map((a: any) => a.general_issue_code_display || a.general_issue_area)
+          .filter(Boolean)
+          .slice(0, 3)
+          .join(', ') || null,
+        specific_issues: filing.lobbying_activities?.[0]?.description?.substring(0, 200) || null,
+        bills_referenced: (filing.lobbying_activities || []).flatMap((a: any) => 
+          (a.bills || []).map((b: any) => b.bill_congress_number || `${b.bill_number}`)
+        ).filter(Boolean) || [],
+        filing_date: filing.filing_dt_posted || filing.dt_posted || filing.received_date || null,
+        filing_year: filing.filing_year || null,
+        filing_period: filing.filing_period_display || filing.filing_period || null,
+        income: filing.income || null,
+        expenses: filing.expenses || null,
+        direct_match: isDirectMatch,
+        // Senate LDA public filing URL format
+        lda_url: filingId 
+          ? `https://lda.senate.gov/filings/public/filing/${filingId}/` 
+          : 'https://lda.senate.gov/filings/public/filing/',
+      };
+    });
   } catch (error) {
     console.error('Error fetching LDA lobbying disclosures:', error);
     return [];
