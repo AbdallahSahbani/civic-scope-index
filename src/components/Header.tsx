@@ -6,10 +6,12 @@ const Spline = lazy(() => import('@splinetool/react-spline'));
 
 export function Header() {
   return (
-    <header className="border-b bg-card relative overflow-hidden">
-      {/* Spline background animation - lazy loaded with error boundary */}
-      <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
-        <Suspense fallback={null}>
+    <header className="relative overflow-hidden min-h-[180px] bg-gradient-to-br from-civic-navy via-civic-slate to-civic-navy">
+      {/* Spline background animation - auto-plays continuously */}
+      <div className="absolute inset-0 z-0">
+        <Suspense fallback={
+          <div className="w-full h-full bg-gradient-to-br from-civic-navy via-civic-slate to-civic-navy animate-pulse" />
+        }>
           <Spline
             scene="https://prod.spline.design/i4aI4hOVrzzRTC52/scene.splinecode"
             style={{ width: '100%', height: '100%' }}
@@ -17,16 +19,25 @@ export function Header() {
         </Suspense>
       </div>
       
-      <div className="container py-6 relative z-10">
+      {/* Gradient overlay for text readability */}
+      <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/30 via-transparent to-black/50" />
+      
+      <div className="container py-8 relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex-1" />
           
           <div className="text-center">
-            <Link to="/" className="inline-block">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground font-serif">
-                Civic Roster
+            <Link to="/" className="inline-block group">
+              {/* Cool animated title */}
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-white font-serif drop-shadow-2xl">
+                <span className="inline-block animate-[fade-in_0.6s_ease-out] bg-gradient-to-r from-white via-civic-paper to-white bg-clip-text text-transparent">
+                  CIVIC'S
+                </span>
+                <span className="inline-block ml-3 animate-[fade-in_0.8s_ease-out] text-patriotic-red drop-shadow-lg">
+                  Roster
+                </span>
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-3 text-sm text-white/80 tracking-widest uppercase animate-[fade-in_1s_ease-out]">
                 United States only · sourced · no endorsements
               </p>
             </Link>
@@ -35,7 +46,7 @@ export function Header() {
           <div className="flex-1 flex justify-end">
             <Link 
               to="/legal" 
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm text-white/70 hover:text-white transition-colors backdrop-blur-sm px-3 py-1 rounded-full border border-white/20 hover:border-white/40"
             >
               Legal & Method
             </Link>
