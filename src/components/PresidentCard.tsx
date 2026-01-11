@@ -5,14 +5,14 @@ import { Badge } from '@/components/ui/badge';
 // Current President - Official White House data (January 20, 2025 - Present)
 // Source: https://www.whitehouse.gov/administration/president-trump/
 const CURRENT_PRESIDENT = {
-  id: 'T000523', // Donald Trump's bioguide ID (Congress.gov)
+  id: 'T000523',
   name: 'Trump, Donald J.',
   displayName: 'Donald J. Trump',
   role: 'President of the United States',
   party: 'Republican',
   state: 'Florida',
-  // Official White House portrait
-  photoUrl: 'https://www.whitehouse.gov/wp-content/uploads/2025/01/P20250113AS-0696-cropped.jpg',
+  // Official portrait from Wikimedia Commons (Public Domain)
+  photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Donald_Trump_official_portrait.jpg/220px-Donald_Trump_official_portrait.jpg',
   term: '47th President • Inaugurated January 20, 2025',
   sourceUrl: 'https://www.whitehouse.gov/administration/president-trump/',
 };

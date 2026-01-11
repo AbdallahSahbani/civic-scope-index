@@ -5,14 +5,14 @@ import { Badge } from '@/components/ui/badge';
 // Current Vice President - Official White House data (January 20, 2025 - Present)
 // Source: https://www.whitehouse.gov/administration/vice-president-vance/
 const CURRENT_VP = {
-  id: 'V000068', // JD Vance's bioguide ID (Congress.gov)
+  id: 'V000068',
   name: 'Vance, JD',
   displayName: 'JD Vance',
   role: 'Vice President of the United States',
   party: 'Republican',
   state: 'Ohio',
-  // Official White House portrait
-  photoUrl: 'https://www.whitehouse.gov/wp-content/uploads/2025/01/P20250113AS-0702-cropped.jpg',
+  // Official Congress.gov portrait (from his Senate term)
+  photoUrl: 'https://www.congress.gov/img/member/V000068_200.jpg',
   term: '50th Vice President • Inaugurated January 20, 2025',
   sourceUrl: 'https://www.whitehouse.gov/administration/vice-president-vance/',
 };
