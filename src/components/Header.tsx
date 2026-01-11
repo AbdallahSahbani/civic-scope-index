@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
+import { Heart } from 'lucide-react';
 
 // Lazy load Spline to prevent crashes
 const Spline = lazy(() => import('@splinetool/react-spline'));
@@ -33,7 +34,16 @@ export function Header() {
       
       <div className="container py-8 relative z-10">
         <div className="flex items-center justify-between">
-          <div className="flex-1" />
+          {/* Interests link */}
+          <div className="flex-1">
+            <Link 
+              to="/interests" 
+              className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 hover:border-white/40"
+            >
+              <Heart className="h-4 w-4" />
+              Interests
+            </Link>
+          </div>
           
           <div className="text-center">
             <Link to="/" className="inline-block group">
