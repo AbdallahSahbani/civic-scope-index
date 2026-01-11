@@ -77,14 +77,14 @@ export const HeroSection = () => {
         >
           {/* Headline */}
           <h1 className="font-serif text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl hero-title">
-            Democracy in Balance
+            Official Roster
           </h1>
 
           {/* Subtext */}
           <p className="mx-auto mt-6 max-w-2xl text-lg text-white/80 sm:text-xl md:text-2xl hero-subtitle">
-            A neutral index of elected officials, journalists, and media organizations.
+            A unified record of U.S. public officials — offices held, actions taken, money raised, and words entered into the public record.
             <span className="block mt-2 text-base sm:text-lg text-white/60">
-              Descriptive metrics. Evidence-linked. No endorsements.
+              USA-only. Descriptive data from primary government sources. Every claim is source-linked.
             </span>
           </p>
 

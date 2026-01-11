@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Loader2, X, Sparkles, ChevronDown, ChevronUp, MapPin, Filter } from 'lucide-react';
+import { Send, Loader2, X, FileText, ChevronDown, ChevronUp, MapPin, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -124,16 +124,16 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
     <div className="bg-card border border-border rounded-lg overflow-hidden">
       {/* Header */}
       <div 
-        className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+        className="flex items-center justify-between p-3 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border/50"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <FileText className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">
-            Search Assistant
+            AI Interpreter
           </span>
-          <span className="text-xs text-muted-foreground">
-            — Ask about any location to find your representatives
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            — Query the public record
           </span>
         </div>
         <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
@@ -222,8 +222,10 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
 
           {/* Example Queries (shown when no messages) */}
           {messages.length === 0 && (
-            <div className="p-4 space-y-2">
-              <p className="text-xs text-muted-foreground">Try asking:</p>
+            <div className="p-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Ask questions about the public record. Answers are limited to sourced data.
+              </p>
               <div className="flex flex-wrap gap-2">
                 {EXAMPLE_QUERIES.map((query) => (
                   <button
@@ -235,14 +237,17 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
                   </button>
                 ))}
               </div>
+              <p className="text-[10px] text-muted-foreground/70">
+                This AI does not provide opinions or predictions.
+              </p>
             </div>
           )}
 
           {/* Input */}
           <div className="p-3 border-t border-border bg-background">
             <div className="flex gap-2">
-              <Input
-                placeholder="Ask about a location or representative..."
+            <Input
+                placeholder='e.g., "What bills has this official sponsored?"'
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -251,6 +256,7 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
               />
               <Button 
                 size="icon" 
+                variant="secondary"
                 onClick={() => handleSubmit()}
                 disabled={!input.trim() || isLoading}
               >
@@ -276,7 +282,7 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
         <div className="p-3">
           <div className="flex gap-2">
             <Input
-              placeholder="e.g., 'Connecticut New Haven' or 'Who represents Texas?'"
+              placeholder='e.g., "I live in New Haven, CT" or "Texas senators"'
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -285,6 +291,7 @@ export function RosterSearchChat({ onApplyFilters }: RosterSearchChatProps) {
             />
             <Button 
               size="icon" 
+              variant="secondary"
               onClick={() => handleSubmit()}
               disabled={!input.trim() || isLoading}
             >
