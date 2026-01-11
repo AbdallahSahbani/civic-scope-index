@@ -47,8 +47,11 @@ export default function MediaWatchPage() {
           </div>
         </div>
 
+        {/* Visual separator between hero and content */}
+        <div className="h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent" />
+
         {/* Content section with Spline background */}
-        <div className="relative min-h-[600px]">
+        <div className="relative min-h-[600px] border-t border-slate-800/50">
           {/* Spline background - lowest layer */}
           <div className="absolute inset-0 z-0">
             <Suspense fallback={
