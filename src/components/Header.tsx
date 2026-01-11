@@ -22,8 +22,8 @@ export function Header() {
       {/* Black box to cover "Built by Spline" watermark + Legal & Method button */}
       <Link 
         to="/legal" 
-        className="absolute bottom-2 right-2 z-20 bg-black text-white text-xs px-3 py-2 hover:bg-black/80 transition-colors"
-        style={{ minWidth: '120px', textAlign: 'center' }}
+        className="absolute z-20 bg-black text-white text-[10px] font-medium px-2 py-1 hover:bg-black/80 transition-colors"
+        style={{ bottom: '4px', right: '4px', minWidth: '90px', textAlign: 'center' }}
       >
         Legal & Method
       </Link>
