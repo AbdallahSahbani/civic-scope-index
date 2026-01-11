@@ -20,11 +20,11 @@ export function Header() {
         </Suspense>
       </div>
       
-      {/* Black box to cover "Built by Spline" watermark + Legal & Method button */}
+      {/* Black box to cover "Built with Spline" watermark */}
       <Link 
         to="/legal" 
-        className="absolute z-20 bg-black text-white text-[10px] font-medium px-2 py-1 hover:bg-black/80 transition-colors"
-        style={{ bottom: '4px', right: '20px', minWidth: '90px', textAlign: 'center' }}
+        className="absolute z-20 bg-black text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-black/90 transition-colors flex items-center gap-2"
+        style={{ bottom: '8px', right: '8px', minWidth: '160px', justifyContent: 'center' }}
       >
         Legal & Method
       </Link>
