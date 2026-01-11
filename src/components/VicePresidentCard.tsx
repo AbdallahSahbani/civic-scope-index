@@ -2,16 +2,19 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Shield, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-// Current Vice President - This should be updated when administration changes
+// Current Vice President - Official White House data (January 20, 2025 - Present)
+// Source: https://www.whitehouse.gov/administration/vice-president-vance/
 const CURRENT_VP = {
-  id: 'V000068', // JD Vance's bioguide ID
+  id: 'V000068', // JD Vance's bioguide ID (Congress.gov)
   name: 'Vance, JD',
   displayName: 'JD Vance',
   role: 'Vice President of the United States',
   party: 'Republican',
   state: 'Ohio',
-  photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/JD_Vance_118th_Congress_portrait_%28cropped%29.jpg/440px-JD_Vance_118th_Congress_portrait_%28cropped%29.jpg',
-  term: '50th Vice President • Elected 2024',
+  // Official White House portrait
+  photoUrl: 'https://www.whitehouse.gov/wp-content/uploads/2025/01/P20250113AS-0702-cropped.jpg',
+  term: '50th Vice President • Inaugurated January 20, 2025',
+  sourceUrl: 'https://www.whitehouse.gov/administration/vice-president-vance/',
 };
 
 function getInitials(name: string): string {

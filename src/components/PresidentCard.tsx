@@ -2,16 +2,19 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Crown, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-// Current President - This should be updated when administration changes
+// Current President - Official White House data (January 20, 2025 - Present)
+// Source: https://www.whitehouse.gov/administration/president-trump/
 const CURRENT_PRESIDENT = {
-  id: 'T000523', // Donald Trump's bioguide ID
+  id: 'T000523', // Donald Trump's bioguide ID (Congress.gov)
   name: 'Trump, Donald J.',
   displayName: 'Donald J. Trump',
   role: 'President of the United States',
   party: 'Republican',
   state: 'Florida',
-  photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Donald_Trump_official_portrait.jpg/440px-Donald_Trump_official_portrait.jpg',
-  term: '47th President • Elected 2024',
+  // Official White House portrait
+  photoUrl: 'https://www.whitehouse.gov/wp-content/uploads/2025/01/P20250113AS-0696-cropped.jpg',
+  term: '47th President • Inaugurated January 20, 2025',
+  sourceUrl: 'https://www.whitehouse.gov/administration/president-trump/',
 };
 
 function getInitials(name: string): string {
