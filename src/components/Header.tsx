@@ -1,11 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
-import { Heart, Tv } from 'lucide-react';
+import { Heart, Tv, Landmark } from 'lucide-react';
 
 // Lazy load Spline to prevent crashes
 const Spline = lazy(() => import('@splinetool/react-spline'));
 
 export function Header() {
+  const location = useLocation();
+  const isMediaWatch = location.pathname === '/media-watch';
+
   return (
     <header className="relative overflow-hidden min-h-[180px] bg-gradient-to-br from-civic-navy via-civic-slate to-civic-navy">
       {/* Spline background animation - auto-plays continuously */}
@@ -34,7 +37,7 @@ export function Header() {
       
       <div className="container py-8 relative z-10">
         <div className="flex items-center justify-between">
-          {/* Navigation links - Interests & Media Watch */}
+          {/* Navigation links - Interests & Toggle */}
           <div className="flex-1 flex items-center gap-3">
             <Link 
               to="/interests" 
@@ -43,13 +46,24 @@ export function Header() {
               <Heart className="h-4 w-4" />
               Interests
             </Link>
-            <Link 
-              to="/media-watch" 
-              className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 hover:border-white/40"
-            >
-              <Tv className="h-4 w-4" />
-              Media Watch
-            </Link>
+            {/* Toggle between Civic Roster and Media Watch */}
+            {isMediaWatch ? (
+              <Link 
+                to="/" 
+                className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 hover:border-white/40"
+              >
+                <Landmark className="h-4 w-4" />
+                Civic Roster
+              </Link>
+            ) : (
+              <Link 
+                to="/media-watch" 
+                className="inline-flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/20 hover:border-white/40"
+              >
+                <Tv className="h-4 w-4" />
+                Media Watch
+              </Link>
+            )}
           </div>
           
           <div className="text-center">
