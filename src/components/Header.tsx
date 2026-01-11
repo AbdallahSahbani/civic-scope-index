@@ -1,9 +1,18 @@
 import { Link } from 'react-router-dom';
+import Spline from '@splinetool/react-spline';
 
 export function Header() {
   return (
-    <header className="border-b bg-card">
-      <div className="container py-6">
+    <header className="border-b bg-card relative overflow-hidden">
+      {/* Spline background animation */}
+      <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
+        <Spline
+          scene="https://prod.spline.design/i4aI4hOVrzzRTC52/scene.splinecode"
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      
+      <div className="container py-6 relative z-10">
         <div className="flex items-center justify-between">
           <div className="flex-1" />
           
@@ -29,7 +38,7 @@ export function Header() {
         </div>
       </div>
       
-      <div className="tricolor-divider" />
+      <div className="tricolor-divider relative z-10" />
     </header>
   );
 }
