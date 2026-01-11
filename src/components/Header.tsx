@@ -23,7 +23,7 @@ export function Header() {
       <Link 
         to="/legal" 
         className="absolute z-20 bg-black text-white text-[10px] font-medium px-2 py-1 hover:bg-black/80 transition-colors"
-        style={{ bottom: '4px', right: '4px', minWidth: '90px', textAlign: 'center' }}
+        style={{ bottom: '4px', right: '20px', minWidth: '90px', textAlign: 'center' }}
       >
         Legal & Method
       </Link>
