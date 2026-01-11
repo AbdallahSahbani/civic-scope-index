@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Shield, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import jdVancePhoto from '@/assets/jd-vance-official.png';
 
 // Current Vice President - Official White House data (January 20, 2025 - Present)
 // Source: https://www.whitehouse.gov/administration/vice-president-vance/
@@ -11,8 +12,8 @@ const CURRENT_VP = {
   role: 'Vice President of the United States',
   party: 'Republican',
   state: 'Ohio',
-  // Official Congress.gov portrait (from his Senate term)
-  photoUrl: 'https://www.congress.gov/img/member/V000068_200.jpg',
+  // Using imported official portrait
+  photoUrl: jdVancePhoto,
   term: '50th Vice President • Inaugurated January 20, 2025',
   sourceUrl: 'https://www.whitehouse.gov/administration/vice-president-vance/',
 };
