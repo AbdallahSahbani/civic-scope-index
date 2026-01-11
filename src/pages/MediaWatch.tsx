@@ -18,40 +18,8 @@ export default function MediaWatchPage() {
       <Header />
 
       <main className="flex-1 relative">
-        {/* Hero section with dark gradient background */}
-        <div className="relative w-full h-[320px] overflow-hidden">
-          {/* Multi-layer dark gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
-          
-          {/* Subtle grid pattern overlay */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
-          }} />
-          
-          {/* Radial glow accent */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,116,139,0.15)_0%,_transparent_70%)]" />
-          
-          {/* Title centered */}
-          <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="text-center px-8 py-6 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
-              <h1 className="text-4xl md:text-5xl font-bold font-serif text-white drop-shadow-lg flex items-center justify-center gap-4">
-                <Tv className="h-10 w-10 text-slate-400" />
-                Media Watch
-              </h1>
-              <p className="mt-4 text-slate-400 text-sm max-w-md mx-auto">
-                Track media organizations, executives, and journalists. Separate from elected officials.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Visual separator between hero and content */}
-        <div className="h-px bg-gradient-to-r from-transparent via-slate-600/50 to-transparent" />
-
-        {/* Content section with Spline background */}
-        <div className="relative min-h-[600px] border-t border-slate-800/50">
+        {/* Unified section with Spline background */}
+        <div className="relative min-h-[700px]">
           {/* Spline background - lowest layer */}
           <div className="absolute inset-0 z-0">
             <Suspense fallback={
@@ -69,6 +37,20 @@ export default function MediaWatchPage() {
 
           {/* Content - above Spline */}
           <div className="relative z-10 container py-12">
+            {/* Hero title inside the Spline section */}
+            <div className="text-center mb-12">
+              <div className="inline-block px-8 py-6 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
+                <h1 className="text-4xl md:text-5xl font-bold font-serif text-white drop-shadow-lg flex items-center justify-center gap-4">
+                  <Tv className="h-10 w-10 text-slate-400" />
+                  Media Watch
+                </h1>
+                <p className="mt-4 text-slate-400 text-sm max-w-md mx-auto">
+                  Track media organizations, executives, and journalists. Separate from elected officials.
+                </p>
+              </div>
+            </div>
+
+            {/* Cards content */}
             {!isLoaded ? (
               <div className="text-muted-foreground text-center">Loading...</div>
             ) : items.length === 0 ? (
