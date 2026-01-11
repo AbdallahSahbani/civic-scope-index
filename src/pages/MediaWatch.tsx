@@ -1,14 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
 import { useMediaWatch } from '@/hooks/useMediaWatch';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Tv } from 'lucide-react';
 import { MediaCard } from '@/components/MediaCard';
-
-// Lazy load Spline to prevent crashes
-const Spline = lazy(() => import('@splinetool/react-spline'));
 
 export default function MediaWatchPage() {
   const { items, remove, isLoaded } = useMediaWatch();
@@ -18,33 +14,29 @@ export default function MediaWatchPage() {
       <Header />
 
       <main className="flex-1 relative">
-        {/* Background paper texture - lowest layer */}
-        <div className="absolute inset-0 z-0" />
-
-        {/* Spline container - constrained height, above texture, below content */}
-        <div className="relative w-full h-[420px] overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <Suspense fallback={
-              <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
-            }>
-              <Spline 
-                scene="https://prod.spline.design/nRGcGcylZYBvn8YY/scene.splinecode" 
-                style={{ width: '100%', height: '100%' }}
-              />
-            </Suspense>
-          </div>
+        {/* Hero section with dark gradient background */}
+        <div className="relative w-full h-[320px] overflow-hidden">
+          {/* Multi-layer dark gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
           
-          {/* Dark translucent overlay for readability - neutral/gray tint for media */}
-          <div className="absolute inset-0 z-10 bg-slate-900/90" />
+          {/* Subtle grid pattern overlay */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            backgroundSize: '40px 40px'
+          }} />
           
-          {/* Title floats above overlay */}
-          <div className="absolute inset-0 z-20 flex items-center justify-center">
+          {/* Radial glow accent */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(100,116,139,0.15)_0%,_transparent_70%)]" />
+          
+          {/* Title centered */}
+          <div className="absolute inset-0 z-10 flex items-center justify-center">
             <div className="text-center">
               <h1 className="text-4xl md:text-5xl font-bold font-serif text-white drop-shadow-lg flex items-center justify-center gap-4">
-                <Tv className="h-10 w-10" />
+                <Tv className="h-10 w-10 text-slate-400" />
                 Media Watch
               </h1>
-              <p className="mt-4 text-white/70 text-sm max-w-md mx-auto">
+              <p className="mt-4 text-slate-400 text-sm max-w-md mx-auto">
                 Track media organizations, executives, and journalists. Separate from elected officials.
               </p>
             </div>
