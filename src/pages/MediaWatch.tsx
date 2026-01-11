@@ -37,38 +37,30 @@ export default function MediaWatchPage() {
 
           {/* Content - above Spline */}
           <div className="relative z-10 container py-12">
-            {/* Hero title inside the Spline section */}
-            <div className="text-center mb-12">
-              <div className="inline-block px-8 py-6 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 shadow-2xl">
-                <h1 className="text-4xl md:text-5xl font-bold font-serif text-white drop-shadow-lg flex items-center justify-center gap-4">
-                  <Tv className="h-10 w-10 text-slate-400" />
-                  Media Watch
-                </h1>
-                <p className="mt-4 text-slate-400 text-sm max-w-md mx-auto">
-                  Track media organizations, executives, and journalists. Separate from elected officials.
-                </p>
+            {/* Badge animation with Explore button */}
+            <div className="flex flex-col items-center justify-center py-16">
+              {/* Spline badge animation */}
+              <div className="w-[400px] h-[200px] overflow-hidden mb-6">
+                <Suspense fallback={
+                  <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 animate-pulse rounded-xl" />
+                }>
+                  <Spline
+                    scene="https://prod.spline.design/yDqO5GwxPpaBh62X/scene.splinecode"
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </Suspense>
               </div>
+              
+              {/* Explore button */}
+              <Button asChild size="lg" className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-sm">
+                <Link to="/">Explore</Link>
+              </Button>
             </div>
 
-            {/* Cards content */}
+            {/* Cards content - only show if there are items */}
             {!isLoaded ? (
               <div className="text-muted-foreground text-center">Loading...</div>
-            ) : items.length === 0 ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="glass-card rounded-xl p-8 text-center max-w-md shadow-2xl bg-background/80 backdrop-blur-sm">
-                  <Tv className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h2 className="text-2xl font-serif font-semibold text-foreground mb-3">
-                    No media entities saved yet
-                  </h2>
-                  <p className="text-muted-foreground mb-6">
-                    Media tracking is separate from elected officials. Add organizations, executives, or journalists to monitor here.
-                  </p>
-                  <Button asChild size="lg" variant="secondary">
-                    <Link to="/">Back to Roster</Link>
-                  </Button>
-                </div>
-              </div>
-            ) : (
+            ) : items.length > 0 && (
               /* Responsive grid layout for cards */
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {items.map((item) => (
