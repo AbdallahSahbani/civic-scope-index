@@ -42,7 +42,7 @@ export default function InterestsPage() {
             <div className="w-full h-full bg-gradient-to-br from-civic-navy via-civic-slate to-civic-navy" />
           }>
             <Spline 
-              scene="https://prod.spline.design/i4aI4hOVrzzRTC52/scene.splinecode" 
+              scene="https://prod.spline.design/nRGcGcylZYBvn8YY/scene.splinecode" 
               style={{ width: '100%', height: '100%' }}
             />
           </Suspense>
