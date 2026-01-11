@@ -67,20 +67,34 @@ export function Header() {
           </div>
           
           <div className="text-center">
-            <Link to="/" className="inline-block group">
-              {/* Cool animated title */}
-              <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-white font-serif drop-shadow-2xl">
-                <span className="inline-block animate-[fade-in_0.6s_ease-out] bg-gradient-to-r from-white via-civic-paper to-white bg-clip-text text-transparent">
-                  CIVIC'S
-                </span>
-                <span className="inline-block ml-3 animate-[fade-in_0.8s_ease-out] text-patriotic-red drop-shadow-lg">
-                  Roster
-                </span>
-              </h1>
-              <p className="mt-3 text-sm text-white/80 tracking-widest uppercase animate-[fade-in_1s_ease-out]">
-                United States only · sourced · no endorsements
-              </p>
-            </Link>
+            {isMediaWatch ? (
+              /* Media Watch Spline logo */
+              <div className="w-[280px] h-[100px] mx-auto overflow-hidden rounded-lg">
+                <Suspense fallback={
+                  <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 animate-pulse" />
+                }>
+                  <Spline
+                    scene="https://prod.spline.design/yDqO5GwxPpaBh62X/scene.splinecode"
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </Suspense>
+              </div>
+            ) : (
+              <Link to="/" className="inline-block group">
+                {/* Cool animated title */}
+                <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-white font-serif drop-shadow-2xl">
+                  <span className="inline-block animate-[fade-in_0.6s_ease-out] bg-gradient-to-r from-white via-civic-paper to-white bg-clip-text text-transparent">
+                    CIVIC'S
+                  </span>
+                  <span className="inline-block ml-3 animate-[fade-in_0.8s_ease-out] text-patriotic-red drop-shadow-lg">
+                    Roster
+                  </span>
+                </h1>
+                <p className="mt-3 text-sm text-white/80 tracking-widest uppercase animate-[fade-in_1s_ease-out]">
+                  United States only · sourced · no endorsements
+                </p>
+              </Link>
+            )}
           </div>
           
           <div className="flex-1" />
