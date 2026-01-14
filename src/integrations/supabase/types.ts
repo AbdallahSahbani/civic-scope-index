@@ -14,7 +14,413 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      media_affiliations: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          organization_id: string
+          person_id: string
+          relationship_type: Database["public"]["Enums"]["affiliation_type"]
+          source_id: string | null
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          organization_id: string
+          person_id: string
+          relationship_type: Database["public"]["Enums"]["affiliation_type"]
+          source_id?: string | null
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          organization_id?: string
+          person_id?: string
+          relationship_type?: Database["public"]["Enums"]["affiliation_type"]
+          source_id?: string | null
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_affiliations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_affiliations_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_affiliations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "media_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_entities: {
+        Row: {
+          active_status: boolean
+          audience_size_band:
+            | Database["public"]["Enums"]["audience_size_band"]
+            | null
+          business_entity:
+            | Database["public"]["Enums"]["business_entity_type"]
+            | null
+          country: string
+          created_at: string
+          declared_role: Database["public"]["Enums"]["declared_role"] | null
+          declared_scope: Database["public"]["Enums"]["declared_scope"] | null
+          description: string | null
+          distribution_channels: string[] | null
+          entity_type: Database["public"]["Enums"]["media_entity_type"]
+          fcc_license_id: string | null
+          first_seen_at: string | null
+          headquarters_city: string | null
+          headquarters_state: string | null
+          id: string
+          last_verified_at: string | null
+          legal_name: string | null
+          logo_url: string | null
+          monetization_methods: string[] | null
+          name: string
+          ownership_type: Database["public"]["Enums"]["ownership_type"] | null
+          parent_company: string | null
+          primary_alias: string | null
+          primary_platform: Database["public"]["Enums"]["media_platform"] | null
+          primary_platforms:
+            | Database["public"]["Enums"]["media_platform"][]
+            | null
+          revenue_band: Database["public"]["Enums"]["revenue_band"] | null
+          sec_cik: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_status?: boolean
+          audience_size_band?:
+            | Database["public"]["Enums"]["audience_size_band"]
+            | null
+          business_entity?:
+            | Database["public"]["Enums"]["business_entity_type"]
+            | null
+          country?: string
+          created_at?: string
+          declared_role?: Database["public"]["Enums"]["declared_role"] | null
+          declared_scope?: Database["public"]["Enums"]["declared_scope"] | null
+          description?: string | null
+          distribution_channels?: string[] | null
+          entity_type: Database["public"]["Enums"]["media_entity_type"]
+          fcc_license_id?: string | null
+          first_seen_at?: string | null
+          headquarters_city?: string | null
+          headquarters_state?: string | null
+          id?: string
+          last_verified_at?: string | null
+          legal_name?: string | null
+          logo_url?: string | null
+          monetization_methods?: string[] | null
+          name: string
+          ownership_type?: Database["public"]["Enums"]["ownership_type"] | null
+          parent_company?: string | null
+          primary_alias?: string | null
+          primary_platform?:
+            | Database["public"]["Enums"]["media_platform"]
+            | null
+          primary_platforms?:
+            | Database["public"]["Enums"]["media_platform"][]
+            | null
+          revenue_band?: Database["public"]["Enums"]["revenue_band"] | null
+          sec_cik?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_status?: boolean
+          audience_size_band?:
+            | Database["public"]["Enums"]["audience_size_band"]
+            | null
+          business_entity?:
+            | Database["public"]["Enums"]["business_entity_type"]
+            | null
+          country?: string
+          created_at?: string
+          declared_role?: Database["public"]["Enums"]["declared_role"] | null
+          declared_scope?: Database["public"]["Enums"]["declared_scope"] | null
+          description?: string | null
+          distribution_channels?: string[] | null
+          entity_type?: Database["public"]["Enums"]["media_entity_type"]
+          fcc_license_id?: string | null
+          first_seen_at?: string | null
+          headquarters_city?: string | null
+          headquarters_state?: string | null
+          id?: string
+          last_verified_at?: string | null
+          legal_name?: string | null
+          logo_url?: string | null
+          monetization_methods?: string[] | null
+          name?: string
+          ownership_type?: Database["public"]["Enums"]["ownership_type"] | null
+          parent_company?: string | null
+          primary_alias?: string | null
+          primary_platform?:
+            | Database["public"]["Enums"]["media_platform"]
+            | null
+          primary_platforms?:
+            | Database["public"]["Enums"]["media_platform"][]
+            | null
+          revenue_band?: Database["public"]["Enums"]["revenue_band"] | null
+          sec_cik?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      media_entity_sources: {
+        Row: {
+          created_at: string
+          entity_id: string
+          field_name: string
+          id: string
+          source_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          field_name: string
+          id?: string
+          source_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          field_name?: string
+          id?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_entity_sources_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_entity_sources_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "media_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_legal_records: {
+        Row: {
+          case_exists: boolean
+          court_name: string | null
+          created_at: string
+          entity_id: string
+          id: string
+          jurisdiction: string | null
+          record_date: string | null
+          record_type: string
+          record_url: string | null
+          source_id: string | null
+        }
+        Insert: {
+          case_exists?: boolean
+          court_name?: string | null
+          created_at?: string
+          entity_id: string
+          id?: string
+          jurisdiction?: string | null
+          record_date?: string | null
+          record_type: string
+          record_url?: string | null
+          source_id?: string | null
+        }
+        Update: {
+          case_exists?: boolean
+          court_name?: string | null
+          created_at?: string
+          entity_id?: string
+          id?: string
+          jurisdiction?: string | null
+          record_date?: string | null
+          record_type?: string
+          record_url?: string | null
+          source_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_legal_records_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_legal_records_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "media_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_platform_verifications: {
+        Row: {
+          created_at: string
+          entity_id: string
+          follower_count_band:
+            | Database["public"]["Enums"]["audience_size_band"]
+            | null
+          id: string
+          platform: Database["public"]["Enums"]["media_platform"]
+          platform_handle: string | null
+          platform_url: string | null
+          source_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          follower_count_band?:
+            | Database["public"]["Enums"]["audience_size_band"]
+            | null
+          id?: string
+          platform: Database["public"]["Enums"]["media_platform"]
+          platform_handle?: string | null
+          platform_url?: string | null
+          source_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          follower_count_band?:
+            | Database["public"]["Enums"]["audience_size_band"]
+            | null
+          id?: string
+          platform?: Database["public"]["Enums"]["media_platform"]
+          platform_handle?: string | null
+          platform_url?: string | null
+          source_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_platform_verifications_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_platform_verifications_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "media_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_public_filings: {
+        Row: {
+          created_at: string
+          description: string | null
+          entity_id: string
+          filing_date: string | null
+          filing_id: string | null
+          filing_type: string
+          filing_url: string | null
+          id: string
+          source_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entity_id: string
+          filing_date?: string | null
+          filing_id?: string | null
+          filing_type: string
+          filing_url?: string | null
+          id?: string
+          source_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entity_id?: string
+          filing_date?: string | null
+          filing_id?: string | null
+          filing_type?: string
+          filing_url?: string | null
+          id?: string
+          source_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_public_filings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_public_filings_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "media_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_sources: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          id: string
+          raw_data: Json | null
+          retrieved_at: string
+          source_title: string | null
+          source_type: Database["public"]["Enums"]["source_type"]
+          source_url: string
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          id?: string
+          raw_data?: Json | null
+          retrieved_at?: string
+          source_title?: string | null
+          source_type: Database["public"]["Enums"]["source_type"]
+          source_url: string
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          id?: string
+          raw_data?: Json | null
+          retrieved_at?: string
+          source_title?: string | null
+          source_type?: Database["public"]["Enums"]["source_type"]
+          source_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +429,28 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      affiliation_type: "employee" | "contractor" | "contributor" | "former"
+      audience_size_band:
+        | "UNDER_100K"
+        | "BETWEEN_100K_1M"
+        | "BETWEEN_1M_10M"
+        | "OVER_10M"
+      business_entity_type: "LLC" | "INC" | "NONE" | "UNKNOWN"
+      declared_role: "journalist" | "commentator" | "podcaster" | "activist"
+      declared_scope: "news" | "opinion" | "mixed"
+      media_entity_type: "CORPORATE_MEDIA" | "INDEPENDENT_FIGURE" | "HYBRID"
+      media_platform: "TV" | "DIGITAL" | "PODCAST" | "RADIO" | "SOCIAL"
+      ownership_type: "PUBLIC" | "PRIVATE" | "SUBSIDIARY"
+      revenue_band: "UNDER_100M" | "BETWEEN_100M_1B" | "OVER_1B"
+      source_type:
+        | "SEC"
+        | "FCC"
+        | "FEC"
+        | "IRS"
+        | "PLATFORM"
+        | "COURT"
+        | "STATE_REGISTRY"
+        | "MANUAL"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +577,31 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      affiliation_type: ["employee", "contractor", "contributor", "former"],
+      audience_size_band: [
+        "UNDER_100K",
+        "BETWEEN_100K_1M",
+        "BETWEEN_1M_10M",
+        "OVER_10M",
+      ],
+      business_entity_type: ["LLC", "INC", "NONE", "UNKNOWN"],
+      declared_role: ["journalist", "commentator", "podcaster", "activist"],
+      declared_scope: ["news", "opinion", "mixed"],
+      media_entity_type: ["CORPORATE_MEDIA", "INDEPENDENT_FIGURE", "HYBRID"],
+      media_platform: ["TV", "DIGITAL", "PODCAST", "RADIO", "SOCIAL"],
+      ownership_type: ["PUBLIC", "PRIVATE", "SUBSIDIARY"],
+      revenue_band: ["UNDER_100M", "BETWEEN_100M_1B", "OVER_1B"],
+      source_type: [
+        "SEC",
+        "FCC",
+        "FEC",
+        "IRS",
+        "PLATFORM",
+        "COURT",
+        "STATE_REGISTRY",
+        "MANUAL",
+      ],
+    },
   },
 } as const
