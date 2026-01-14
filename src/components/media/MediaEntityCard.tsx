@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Building2, User, Mic, Tv, Radio, Globe, Podcast, Heart } from 'lucide-react';
+import { Building2, User, Mic, Tv, Radio, Globe, Podcast, Heart, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { MediaEntity, MediaPlatform, MediaEntityType } from '@/lib/mediaTypes';
@@ -8,6 +8,7 @@ import { useMediaWatch } from '@/hooks/useMediaWatch';
 
 interface MediaEntityCardProps {
   entity: MediaEntity;
+  onViewRecord?: (entity: MediaEntity) => void;
 }
 
 function getEntityIcon(type: MediaEntityType) {
@@ -50,7 +51,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-export function MediaEntityCard({ entity }: MediaEntityCardProps) {
+export function MediaEntityCard({ entity, onViewRecord }: MediaEntityCardProps) {
   const Icon = getEntityIcon(entity.entity_type);
   const { add, remove, has } = useMediaWatch();
   const isWatched = has(entity.id);
@@ -72,6 +73,12 @@ export function MediaEntityCard({ entity }: MediaEntityCardProps) {
         headquarters: entity.headquarters_state ? `${entity.headquarters_city || ''}, ${entity.headquarters_state}` : undefined,
       });
     }
+  };
+
+  const handleViewRecord = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onViewRecord?.(entity);
   };
 
   return (
@@ -147,11 +154,23 @@ export function MediaEntityCard({ entity }: MediaEntityCardProps) {
               <span>Verified: {new Date(entity.last_verified_at).toLocaleDateString()}</span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground">
-            {entity.headquarters_state && (
-              <span>{entity.headquarters_city ? `${entity.headquarters_city}, ` : ''}{entity.headquarters_state}</span>
-            )}
-          </div>
+          {onViewRecord ? (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 text-xs"
+              onClick={handleViewRecord}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              View Record
+            </Button>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              {entity.headquarters_state && (
+                <span>{entity.headquarters_city ? `${entity.headquarters_city}, ` : ''}{entity.headquarters_state}</span>
+              )}
+            </div>
+          )}
         </div>
       </Link>
 
