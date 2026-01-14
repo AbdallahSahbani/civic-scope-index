@@ -1,19 +1,44 @@
-import { Link } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
-import { useMediaWatch } from '@/hooks/useMediaWatch';
+import { useState, Suspense, lazy } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
-import { MediaCard } from '@/components/MediaCard';
+import { MediaFilterPanel } from '@/components/media/MediaFilterPanel';
+import { MediaResultsGrid } from '@/components/media/MediaResultsGrid';
+import { MediaDetailDrawer } from '@/components/media/MediaDetailDrawer';
+import { useMediaEntities } from '@/hooks/useMediaEntities';
+import type { MediaFilters, MediaEntity } from '@/lib/mediaTypes';
 
 // Lazy load Spline to prevent crashes
 const Spline = lazy(() => import('@splinetool/react-spline'));
 
+const defaultFilters: MediaFilters = {
+  entityType: 'all',
+  platforms: [],
+  audienceBand: 'all',
+  activeStatus: 'all',
+  hasFilings: null,
+  search: '',
+};
+
 export default function MediaWatchPage() {
-  const { items, remove, isLoaded } = useMediaWatch();
+  const [filters, setFilters] = useState<MediaFilters>(defaultFilters);
+  const [selectedEntity, setSelectedEntity] = useState<MediaEntity | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const { data: entities = [], isLoading, error } = useMediaEntities({ filters });
 
   const scrollToContent = () => {
     document.getElementById('media-roster-content')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleViewRecord = (entity: MediaEntity) => {
+    setSelectedEntity(entity);
+    setDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedEntity(null);
   };
 
   return (
@@ -66,28 +91,50 @@ export default function MediaWatchPage() {
           </div>
         </section>
 
-        {/* Media roster content section */}
+        {/* Media roster content section - 3-column layout */}
         <section id="media-roster-content" className="container py-12">
-          {!isLoaded ? (
-            <div className="text-muted-foreground text-center py-16">Loading...</div>
-          ) : items.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground text-lg mb-4">
-                No media entities in your watch list yet.
-              </p>
-              <Button asChild variant="outline">
-                <Link to="/">Browse Media Organizations</Link>
-              </Button>
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+            {/* Left: Filter Panel */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-24 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-5">
+                <h2 className="font-serif text-lg font-medium text-foreground mb-4">Filters</h2>
+                <MediaFilterPanel 
+                  filters={filters} 
+                  onFiltersChange={setFilters} 
+                />
+              </div>
+            </aside>
+
+            {/* Center: Results Grid */}
+            <div className="min-w-0">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="font-serif text-xl font-medium text-foreground">
+                    Media Entities
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {isLoading ? 'Loading...' : `${entities.length} ${entities.length === 1 ? 'record' : 'records'} found`}
+                  </p>
+                </div>
+              </div>
+
+              <MediaResultsGrid 
+                entities={entities} 
+                isLoading={isLoading} 
+                error={error as Error | null}
+                onViewRecord={handleViewRecord}
+              />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {items.map((item) => (
-                <MediaCard key={item.id} item={item} onRemove={remove} />
-              ))}
-            </div>
-          )}
+          </div>
         </section>
       </main>
+
+      {/* Detail Drawer */}
+      <MediaDetailDrawer 
+        entity={selectedEntity} 
+        open={drawerOpen} 
+        onClose={handleCloseDrawer} 
+      />
 
       <Footer />
     </div>
