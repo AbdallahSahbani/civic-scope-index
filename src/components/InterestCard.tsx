@@ -1,126 +1,135 @@
-import { Link } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { X } from "lucide-react";
+import { useMemo, useState } from "react";
+import clsx from "clsx";
+
+type Party = "R" | "D" | "I";
+
+interface InterestItem {
+  id: string;
+  name: string;
+  role?: string;
+  party?: string | null;
+  state?: string;
+  jurisdiction?: string;
+  photoUrl?: string;
+  entityType?: string;
+}
 
 interface InterestCardProps {
-  item: {
-    id: string;
-    name: string;
-    role?: string;
-    party?: string | null;
-    state?: string;
-    jurisdiction?: string;
-    photoUrl?: string;
-    entityType?: string;
-  };
+  item: InterestItem;
   onRemove: (id: string) => void;
 }
 
-function getPartyStyles(party?: string | null) {
-  if (!party) return { border: 'border-gray-400', bg: 'bg-gray-500', header: 'bg-gray-600', text: 'I' };
-  const p = party.toLowerCase();
-  if (p.includes('republican') || p === 'r') return { border: 'border-red-500', bg: 'bg-red-600', header: 'bg-red-700', text: 'R' };
-  if (p.includes('democrat') || p === 'd') return { border: 'border-blue-500', bg: 'bg-blue-600', header: 'bg-blue-700', text: 'D' };
-  if (p.includes('independent') || p === 'i') return { border: 'border-gray-400', bg: 'bg-gray-500', header: 'bg-gray-600', text: 'I' };
-  return { border: 'border-gray-400', bg: 'bg-gray-500', header: 'bg-gray-600', text: 'I' };
+/* ---------- party normalization ---------- */
+
+function normalizeParty(party?: string | null): Party {
+  const p = party?.toLowerCase();
+  if (p === "r" || p?.includes("republican")) return "R";
+  if (p === "d" || p?.includes("democrat")) return "D";
+  return "I";
 }
 
-function getInitials(name: string): string {
+const PARTY_STYLES: Record<Party, { border: string; bg: string; header: string }> = {
+  R: {
+    border: "border-red-500",
+    bg: "bg-red-600",
+    header: "bg-red-700",
+  },
+  D: {
+    border: "border-blue-500",
+    bg: "bg-blue-600",
+    header: "bg-blue-700",
+  },
+  I: {
+    border: "border-gray-400",
+    bg: "bg-gray-500",
+    header: "bg-gray-600",
+  },
+};
+
+/* ---------- helpers ---------- */
+
+function getInitials(name: string) {
   return name
-    .split(' ')
-    .map((part) => part[0])
-    .filter(Boolean)
+    .split(" ")
+    .map((p) => p[0])
     .slice(0, 2)
-    .join('')
+    .join("")
     .toUpperCase();
 }
 
+/* ---------- component ---------- */
+
 export function InterestCard({ item, onRemove }: InterestCardProps) {
-  const partyStyles = getPartyStyles(item.party);
+  const party = useMemo(() => normalizeParty(item.party), [item.party]);
+  const styles = PARTY_STYLES[party];
+  const [imgError, setImgError] = useState(false);
 
   return (
-    <div className={`relative w-full max-w-[280px] mx-auto rounded-xl border-4 ${partyStyles.border} bg-card shadow-xl overflow-hidden transform hover:scale-[1.02] hover:shadow-2xl transition-all duration-300`}>
-      {/* Header with name */}
-      <div className={`${partyStyles.header} py-3 px-4 text-center`}>
-        <h3 className="text-white font-bold text-lg font-serif truncate">{item.name}</h3>
-      </div>
+    <article
+      className={clsx(
+        "relative w-full max-w-[280px] rounded-xl border-4 shadow-xl overflow-hidden",
+        "transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl",
+        styles.border,
+      )}
+    >
+      {/* Header */}
+      <header className={clsx("px-4 py-3 text-center", styles.header)}>
+        <h3 className="truncate text-lg font-bold font-serif text-white">{item.name}</h3>
+      </header>
 
-      {/* Photo area with flag background */}
-      <div className="relative h-48 bg-gradient-to-br from-red-900 via-blue-900 to-red-900 overflow-hidden">
-        {/* American flag pattern overlay */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-0 w-1/3 h-1/2 bg-blue-800" />
-          {[...Array(13)].map((_, i) => (
-            <div
-              key={i}
-              className={`absolute w-full h-[7.7%] ${i % 2 === 0 ? 'bg-red-600' : 'bg-white'}`}
-              style={{ top: `${i * 7.69}%` }}
-            />
-          ))}
-        </div>
-
-        {/* Photo or initials */}
+      {/* Media */}
+      <div className="relative h-48 bg-gradient-to-br from-red-900 via-blue-900 to-red-900">
         <div className="absolute inset-0 flex items-center justify-center">
-          {item.photoUrl ? (
+          {!imgError && item.photoUrl ? (
             <img
               src={item.photoUrl}
               alt={item.name}
-              className="w-40 h-40 object-cover rounded-lg border-2 border-white/50 shadow-lg"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
+              className="h-40 w-40 rounded-lg object-cover border border-white/40 shadow-lg"
+              onError={() => setImgError(true)}
             />
-          ) : null}
-          <div className={`w-40 h-40 rounded-lg bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-4xl font-bold font-serif text-white border-2 border-white/50 ${item.photoUrl ? 'hidden' : ''}`}>
-            {getInitials(item.name)}
-          </div>
+          ) : (
+            <div className="h-40 w-40 rounded-lg bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-4xl font-bold font-serif text-white border border-white/40">
+              {getInitials(item.name)}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Info section */}
-      <div className={`${partyStyles.bg} py-3 px-4`}>
-        <p className="text-white font-semibold text-center text-sm">
-          {item.role || item.entityType || 'Official'}
-        </p>
-        <p className="text-white/80 text-center text-xs">
-          {item.jurisdiction || item.state || 'United States'}
-        </p>
+      {/* Info */}
+      <div className={clsx("px-4 py-3 text-center", styles.bg)}>
+        <p className="text-sm font-semibold text-white">{item.role ?? item.entityType ?? "Official"}</p>
+        <p className="text-xs text-white/80">{item.jurisdiction ?? item.state ?? "United States"}</p>
       </div>
 
-      {/* Footer with party badge and remove */}
-      <div className="bg-white/90 py-3 px-4 flex items-center justify-between">
-        {/* Party badge */}
-        <div className={`w-8 h-8 rounded-full ${partyStyles.bg} flex items-center justify-center`}>
-          <span className="text-white font-bold text-sm">{partyStyles.text}</span>
+      {/* Footer */}
+      <footer className="flex items-center justify-between bg-white/90 px-4 py-3">
+        <div
+          className={clsx(
+            "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white",
+            styles.bg,
+          )}
+          aria-label={`Party ${party}`}
+        >
+          {party}
         </div>
 
-        {/* Remove button */}
         <button
           onClick={() => onRemove(item.id)}
-          className="text-gray-500 hover:text-red-500 text-sm font-medium flex items-center gap-1 transition-colors"
+          className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-red-500 transition-colors"
         >
+          <X size={14} />
           Remove
         </button>
-      </div>
+      </footer>
 
-      {/* View Profile overlay on click */}
+      {/* View profile (explicit, not hijacking clicks) */}
       <Link
         to={`/official/${item.id}`}
-        className="absolute inset-0 z-10"
-        title="View Profile"
+        className="absolute inset-0 z-10 focus:outline-none"
+        aria-label={`View profile for ${item.name}`}
       />
-
-      {/* Remove button needs to be above the link */}
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onRemove(item.id);
-        }}
-        className="absolute bottom-3 right-4 z-20 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors"
-      >
-        Remove
-      </button>
-    </div>
+    </article>
   );
 }
