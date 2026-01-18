@@ -1,4 +1,4 @@
-import import { defineConfig, loadEnv, type UserConfig } from "vite";
+import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "node:path";
 import fs from "node:fs";
