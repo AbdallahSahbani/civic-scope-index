@@ -60,6 +60,7 @@ CREATE TYPE public.declared_role AS ENUM (
 CREATE TYPE public.business_entity_type AS ENUM (
   'LLC',
   'INC',
+  'Nonprofit'
   'NONE',
   'UNKNOWN'
 );

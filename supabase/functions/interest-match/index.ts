@@ -2,20 +2,26 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkUSAOnly, createGeoBlockedResponse, sanitizeString } from "../_shared/geo-restrict.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const STOP_WORDS = new Set(["the", "and", "of", "to", "for", "on", "with", "a", "an", "in"]);
+
+interface RelevantItem {
+  type: "bill" | "vote";
+  title: string;
+  description: string;
+  date?: string;
+  url?: string;
+  score: number;
+}
 
 interface MatchResult {
   interest: string;
-  relevantItems: {
-    type: 'bill' | 'vote';
-    title: string;
-    description?: string;
-    date?: string;
-    url?: string;
-  }[];
-  matchCount: number;
+  bills: RelevantItem[];
+  votes: RelevantItem[];
+  totalMatches: number;
 }
 
 interface MatchResponse {
@@ -24,12 +30,40 @@ interface MatchResponse {
   disclaimer: string;
 }
 
+/* ------------------ helpers ------------------ */
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
+}
+
+function scoreMatch(tokens: string[], text: string): number {
+  const haystack = text.toLowerCase();
+  let score = 0;
+
+  for (const token of tokens) {
+    if (haystack.includes(token)) score++;
+  }
+
+  return score;
+}
+
+function normalizeDate(input?: string): string | undefined {
+  if (!input) return undefined;
+  const d = new Date(input);
+  return isNaN(d.getTime()) ? undefined : d.toISOString().split("T")[0];
+}
+
+/* ------------------ server ------------------ */
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // USA-only geo-restriction
   const geoCheck = checkUSAOnly(req);
   if (!geoCheck.allowed) {
     return createGeoBlockedResponse(corsHeaders);
@@ -37,87 +71,96 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    
-    // Input validation
-    let interests = body.interests;
-    const bills = body.bills;
-    const votes = body.votes;
 
-    if (!interests || !Array.isArray(interests)) {
-      return new Response(
-        JSON.stringify({ error: 'Missing or invalid interests array' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!Array.isArray(body.interests)) {
+      return new Response(JSON.stringify({ error: "Invalid interests array" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Limit interests to 10 and sanitize each
-    interests = interests.slice(0, 10).map((i: any) => sanitizeString(String(i), 100));
+    const interests = body.interests.slice(0, 10).map((i: unknown) => sanitizeString(String(i), 100));
 
-    // Match user interests against bills and votes (descriptive only)
-    const matches: MatchResult[] = interests.map((interest: string) => {
-      const interestLower = interest.toLowerCase();
-      const relevantItems: MatchResult['relevantItems'] = [];
+    const bills = Array.isArray(body.bills) ? body.bills : [];
+    const votes = Array.isArray(body.votes) ? body.votes : [];
 
-      // Search bills for interest keywords
-      if (bills && Array.isArray(bills)) {
-        bills.forEach((bill: any) => {
-          const title = (bill.title || '').toLowerCase();
-          const type = (bill.type || '').toLowerCase();
-          
-          if (title.includes(interestLower)) {
-            relevantItems.push({
-              type: 'bill',
-              title: sanitizeString(bill.title || '', 200),
-              description: `${sanitizeString(bill.type || '', 20)}${bill.number} - Congress ${bill.congress}`,
-              date: bill.latestAction?.actionDate,
-              url: bill.url,
-            });
-          }
+    const matches: MatchResult[] = interests.map((interest) => {
+      const tokens = tokenize(interest);
+
+      const matchedBills: RelevantItem[] = [];
+      const matchedVotes: RelevantItem[] = [];
+
+      for (const bill of bills) {
+        const title = sanitizeString(bill.title || "", 200);
+        const textBlob = `${bill.title || ""} ${bill.type || ""}`;
+
+        const score = scoreMatch(tokens, textBlob);
+        if (score === 0) continue;
+
+        matchedBills.push({
+          type: "bill",
+          title,
+          description: sanitizeString(
+            `${bill.type || "Bill"} ${bill.number || ""} – Congress ${bill.congress || ""}`,
+            150,
+          ),
+          date: normalizeDate(bill.latestAction?.actionDate),
+          url: sanitizeString(bill.url || "", 300),
+          score,
         });
       }
 
-      // Search votes/cosponsored legislation
-      if (votes && Array.isArray(votes)) {
-        votes.forEach((vote: any) => {
-          const title = (vote.title || '').toLowerCase();
-          const billNumber = (vote.billNumber || '').toLowerCase();
-          
-          if (title.includes(interestLower)) {
-            relevantItems.push({
-              type: 'vote',
-              title: sanitizeString(vote.title || '', 200),
-              description: `${vote.type === 'cosponsored' ? 'Cosponsored' : 'Voted on'}: ${sanitizeString(vote.billNumber || '', 20)}`,
-              date: vote.latestAction?.actionDate,
-              url: vote.url,
-            });
-          }
+      for (const vote of votes) {
+        const title = sanitizeString(vote.title || "", 200);
+        const textBlob = `${vote.title || ""} ${vote.billNumber || ""}`;
+
+        const score = scoreMatch(tokens, textBlob);
+        if (score === 0) continue;
+
+        matchedVotes.push({
+          type: "vote",
+          title,
+          description: sanitizeString(
+            vote.type === "cosponsored" ? `Cosponsored ${vote.billNumber || ""}` : `Voted on ${vote.billNumber || ""}`,
+            150,
+          ),
+          date: normalizeDate(vote.latestAction?.actionDate),
+          url: sanitizeString(vote.url || "", 300),
+          score,
         });
       }
+
+      matchedBills.sort((a, b) => b.score - a.score);
+      matchedVotes.sort((a, b) => b.score - a.score);
+
+      const billsOut = matchedBills.slice(0, 5);
+      const votesOut = matchedVotes.slice(0, 5);
 
       return {
         interest,
-        relevantItems: relevantItems.slice(0, 5), // Limit to 5 per interest
-        matchCount: relevantItems.length,
+        bills: billsOut,
+        votes: votesOut,
+        totalMatches: billsOut.length + votesOut.length,
       };
     });
 
-    const totalMatches = matches.reduce((sum, m) => sum + m.matchCount, 0);
+    const totalMatches = matches.reduce((sum, m) => sum + m.totalMatches, 0);
 
     const response: MatchResponse = {
       matches,
       totalMatches,
-      disclaimer: 'This is descriptive data showing legislative activity related to your interests. It does not represent endorsement, recommendation, or judgment of any kind.',
+      disclaimer:
+        "This output describes legislative activity textually related to user-selected interests. It does not imply support, opposition, or endorsement.",
     };
 
-    return new Response(
-      JSON.stringify(response),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error('Interest match error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to process interest matching' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Interest match error:", err);
+    return new Response(JSON.stringify({ error: "Internal matching failure" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
