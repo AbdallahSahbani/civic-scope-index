@@ -61,6 +61,7 @@ export function MediaFilterPanel({ filters, onFiltersChange }: MediaFilterPanelP
       entityType: 'all',
       platforms: [],
       audienceBand: 'all',
+      revenueBand: 'all',
       activeStatus: 'all',
       hasFilings: null,
       search: '',
