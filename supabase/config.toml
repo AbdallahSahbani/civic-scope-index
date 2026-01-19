@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.roster-search-chat]
 verify_jwt = false
+
+[functions.geocoder]
+verify_jwt = false

@@ -84,7 +84,7 @@ serve(async (req) => {
     const bills = Array.isArray(body.bills) ? body.bills : [];
     const votes = Array.isArray(body.votes) ? body.votes : [];
 
-    const matches: MatchResult[] = interests.map((interest) => {
+    const matches: MatchResult[] = interests.map((interest: string) => {
       const tokens = tokenize(interest);
 
       const matchedBills: RelevantItem[] = [];
