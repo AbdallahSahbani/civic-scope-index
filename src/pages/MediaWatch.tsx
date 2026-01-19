@@ -15,6 +15,7 @@ const defaultFilters: MediaFilters = {
   entityType: 'all',
   platforms: [],
   audienceBand: 'all',
+  revenueBand: 'all',
   activeStatus: 'all',
   hasFilings: null,
   search: '',

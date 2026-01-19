@@ -24,30 +24,19 @@ export const OWNERSHIP_TYPE = {
   SUBSIDIARY: "SUBSIDIARY",
 } as const;
 
+// Matches database enum: revenue_band
 export const REVENUE_BAND = {
-  UNDER_1M: "UNDER_1M",
-  BETWEEN_1M_10M: "BETWEEN_1M_10M",
-  BETWEEN_10M_50M: "BETWEEN_10M_50M",
-  BETWEEN_50M_100M: "BETWEEN_50M_100M",
-  BETWEEN_100M_500M: "BETWEEN_100M_500M",
-  BETWEEN_500M_1B: "BETWEEN_500M_1B",
-  BETWEEN_1B_5B: "BETWEEN_1B_5B",
-  OVER_5B: "OVER_5B",
+  UNDER_100M: "UNDER_100M",
+  BETWEEN_100M_1B: "BETWEEN_100M_1B",
+  OVER_1B: "OVER_1B",
 } as const;
 
+// Matches database enum: audience_size_band
 export const AUDIENCE_SIZE_BAND = {
-  UNDER_10K: "UNDER_10K",
-  BETWEEN_10K_50K: "BETWEEN_10K_50K",
-  BETWEEN_50K_100K: "BETWEEN_50K_100K",
-  BETWEEN_100K_250K: "BETWEEN_100K_250K",
-  BETWEEN_250K_500K: "BETWEEN_250K_500K",
-  BETWEEN_500K_1M: "BETWEEN_500K_1M",
-  BETWEEN_1M_2_5M: "BETWEEN_1M_2_5M",
-  BETWEEN_2_5M_5M: "BETWEEN_2_5M_5M",
-  BETWEEN_5M_10M: "BETWEEN_5M_10M",
-  BETWEEN_10M_25M: "BETWEEN_10M_25M",
-  BETWEEN_25M_50M: "BETWEEN_25M_50M",
-  OVER_50M: "OVER_50M",
+  UNDER_100K: "UNDER_100K",
+  BETWEEN_100K_1M: "BETWEEN_100K_1M",
+  BETWEEN_1M_10M: "BETWEEN_1M_10M",
+  OVER_10M: "OVER_10M",
 } as const;
 
 export const DECLARED_SCOPE = {
@@ -203,7 +192,7 @@ export interface MediaFilters {
   entityType: MediaEntityType | "all";
   platforms: MediaPlatform[];
   audienceBand: AudienceSizeBand | "all";
-  revenueBand: RevenueBand | "all";
+  revenueBand?: RevenueBand | "all";
   activeStatus: "all" | "active" | "inactive";
   hasFilings: boolean | null;
   search: string;
@@ -225,29 +214,16 @@ export const PLATFORM_LABELS: Record<MediaPlatform, string> = {
 };
 
 export const REVENUE_BAND_LABELS: Record<RevenueBand, string> = {
-  UNDER_1M: "Under $1M",
-  BETWEEN_1M_10M: "$1M – $10M",
-  BETWEEN_10M_50M: "$10M – $50M",
-  BETWEEN_50M_100M: "$50M – $100M",
-  BETWEEN_100M_500M: "$100M – $500M",
-  BETWEEN_500M_1B: "$500M – $1B",
-  BETWEEN_1B_5B: "$1B – $5B",
-  OVER_5B: "Over $5B",
+  UNDER_100M: "Under $100M",
+  BETWEEN_100M_1B: "$100M – $1B",
+  OVER_1B: "Over $1B",
 };
 
 export const AUDIENCE_BAND_LABELS: Record<AudienceSizeBand, string> = {
-  UNDER_10K: "Under 10K",
-  BETWEEN_10K_50K: "10K – 50K",
-  BETWEEN_50K_100K: "50K – 100K",
-  BETWEEN_100K_250K: "100K – 250K",
-  BETWEEN_250K_500K: "250K – 500K",
-  BETWEEN_500K_1M: "500K – 1M",
-  BETWEEN_1M_2_5M: "1M – 2.5M",
-  BETWEEN_2_5M_5M: "2.5M – 5M",
-  BETWEEN_5M_10M: "5M – 10M",
-  BETWEEN_10M_25M: "10M – 25M",
-  BETWEEN_25M_50M: "25M – 50M",
-  OVER_50M: "Over 50M",
+  UNDER_100K: "Under 100K",
+  BETWEEN_100K_1M: "100K – 1M",
+  BETWEEN_1M_10M: "1M – 10M",
+  OVER_10M: "Over 10M",
 };
 
 export const DECLARED_SCOPE_LABELS: Record<DeclaredScope, string> = {
