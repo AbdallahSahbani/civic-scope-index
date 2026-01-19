@@ -5,6 +5,7 @@ import { RosterFilters } from '@/components/RosterFilters';
 import { RosterSearchChat } from '@/components/RosterSearchChat';
 import { PresidentCard } from '@/components/PresidentCard';
 import { VicePresidentCard } from '@/components/VicePresidentCard';
+import { LocationLookup } from '@/components/LocationLookup';
 import { Loader2, AlertCircle, RefreshCw, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
@@ -41,6 +42,9 @@ export function RosterSection() {
             </p>
           )}
         </div>
+
+        {/* Location-Based Representative Lookup */}
+        <LocationLookup />
 
         {/* AI Search Chat */}
         <RosterSearchChat 
