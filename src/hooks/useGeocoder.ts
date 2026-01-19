@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { GeocoderResponse, GeocoderInput } from '@/lib/geocoderTypes';
 
 interface UseGeocoderResult {
@@ -34,12 +33,7 @@ export function useGeocoder(): UseGeocoderResult {
         throw new Error('Either address+zipcode or lat+lon is required');
       }
 
-      const { data: responseData, error: fetchError } = await supabase.functions.invoke('geocoder', {
-        body: null,
-        // Pass as query params via headers workaround
-      });
-
-      // Alternative: call directly with query string
+      // Direct GET request to edge function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/geocoder?${params.toString()}`,
         {

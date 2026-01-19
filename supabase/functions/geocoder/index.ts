@@ -297,10 +297,11 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      console.error('USGeocoder API error:', response.status);
+      const errorText = await response.text();
+      console.error('USGeocoder API error:', response.status, errorText);
       return new Response(JSON.stringify({
         success: false,
-        error: `Geocoder API returned ${response.status}`,
+        error: `Geocoder API returned ${response.status}: ${errorText.slice(0, 200)}`,
       }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -308,6 +309,7 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log('USGeocoder response status:', data.request_status_code, data.request_status_message);
     
     // Parse and structure the response
     const parsed = parseGeocoderResponse(data);
