@@ -77,6 +77,30 @@ export const SOURCE_TYPE = {
   MANUAL: "MANUAL",
 } as const;
 
+// New enums for enhanced affiliation tracking
+export const FINANCIAL_FLOW_TYPE = {
+  NONE: "none",
+  INDIRECT: "indirect",
+  DIRECT: "direct",
+  UNKNOWN: "unknown",
+} as const;
+
+export const ROUTING_CONTEXT_TYPE = {
+  DONATIONS: "donations",
+  SECURITY: "security",
+  CONTENT: "content",
+  EMPLOYMENT: "employment",
+  LEGAL: "legal",
+  ADVERTISING: "advertising",
+  ACADEMIC: "academic",
+} as const;
+
+export const VERIFICATION_STATUS = {
+  VERIFIED: "verified",
+  UNVERIFIED: "unverified",
+  DISPUTED: "disputed",
+} as const;
+
 // Type definitions derived from constants
 export type MediaEntityType = (typeof MEDIA_ENTITY_TYPE)[keyof typeof MEDIA_ENTITY_TYPE];
 export type MediaPlatform = (typeof MEDIA_PLATFORM)[keyof typeof MEDIA_PLATFORM];
@@ -88,6 +112,9 @@ export type DeclaredRole = (typeof DECLARED_ROLE)[keyof typeof DECLARED_ROLE];
 export type BusinessEntityType = (typeof BUSINESS_ENTITY_TYPE)[keyof typeof BUSINESS_ENTITY_TYPE];
 export type AffiliationType = (typeof AFFILIATION_TYPE)[keyof typeof AFFILIATION_TYPE];
 export type SourceType = (typeof SOURCE_TYPE)[keyof typeof SOURCE_TYPE];
+export type FinancialFlowType = (typeof FINANCIAL_FLOW_TYPE)[keyof typeof FINANCIAL_FLOW_TYPE];
+export type RoutingContextType = (typeof ROUTING_CONTEXT_TYPE)[keyof typeof ROUTING_CONTEXT_TYPE];
+export type VerificationStatus = (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS];
 
 // Core entity interface
 export interface MediaEntity {
@@ -137,17 +164,57 @@ export interface MediaSource {
   created_at: string;
 }
 
-// Affiliation interface
+// Affiliation interface (enhanced)
 export interface MediaAffiliation {
   id: string;
   person_id: string;
   organization_id: string;
   relationship_type: AffiliationType;
+  financial_flow?: FinancialFlowType;
+  routing_context?: RoutingContextType;
+  verification_status?: VerificationStatus;
+  context_description?: string;
   start_date?: string;
   end_date?: string;
   source_id?: string;
   person?: MediaEntity;
   organization?: MediaEntity;
+}
+
+// Sponsorship interface (commercial relationships, separate from affiliations)
+export interface MediaSponsorship {
+  id: string;
+  entity_id: string;
+  sponsor_name: string;
+  sponsor_entity_id?: string;
+  sponsor_entity?: MediaEntity;
+  relationship_type: string; // 'sponsored_content', 'commercial_partner', 'advertiser'
+  context?: string;
+  financial_flow?: FinancialFlowType;
+  disclosure_status?: string; // 'disclosed', 'undisclosed', 'unknown'
+  verification_status?: VerificationStatus;
+  start_date?: string;
+  end_date?: string;
+  source_id?: string;
+  source_url?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Donation routing interface
+export interface MediaDonationRouting {
+  id: string;
+  entity_id: string;
+  destination_name: string;
+  destination_entity_id?: string;
+  destination_entity?: MediaEntity;
+  routing_type: string; // 'payment_processor', 'fund', 'nonprofit', 'direct'
+  control_relationship?: string; // 'owned', 'managed', 'not_established'
+  source_url?: string;
+  snapshot_date?: string;
+  source_id?: string;
+  created_at: string;
 }
 
 // Public filing interface
@@ -261,4 +328,27 @@ export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   COURT: "Court Record",
   STATE_REGISTRY: "State Registry",
   MANUAL: "Manual Entry",
+};
+
+export const FINANCIAL_FLOW_LABELS: Record<FinancialFlowType, string> = {
+  none: "None",
+  indirect: "Indirect",
+  direct: "Direct",
+  unknown: "Unknown",
+};
+
+export const ROUTING_CONTEXT_LABELS: Record<RoutingContextType, string> = {
+  donations: "Donations",
+  security: "Security Services",
+  content: "Content",
+  employment: "Employment",
+  legal: "Legal",
+  advertising: "Advertising",
+  academic: "Academic",
+};
+
+export const VERIFICATION_STATUS_LABELS: Record<VerificationStatus, string> = {
+  verified: "Verified",
+  unverified: "Unverified",
+  disputed: "Disputed",
 };

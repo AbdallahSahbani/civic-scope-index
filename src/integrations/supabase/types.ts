@@ -16,37 +16,67 @@ export type Database = {
     Tables: {
       media_affiliations: {
         Row: {
+          context_description: string | null
           created_at: string
           end_date: string | null
+          financial_flow:
+            | Database["public"]["Enums"]["financial_flow_type"]
+            | null
           id: string
           organization_id: string
           person_id: string
           relationship_type: Database["public"]["Enums"]["affiliation_type"]
+          routing_context:
+            | Database["public"]["Enums"]["routing_context_type"]
+            | null
           source_id: string | null
           start_date: string | null
           updated_at: string
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
         }
         Insert: {
+          context_description?: string | null
           created_at?: string
           end_date?: string | null
+          financial_flow?:
+            | Database["public"]["Enums"]["financial_flow_type"]
+            | null
           id?: string
           organization_id: string
           person_id: string
           relationship_type: Database["public"]["Enums"]["affiliation_type"]
+          routing_context?:
+            | Database["public"]["Enums"]["routing_context_type"]
+            | null
           source_id?: string | null
           start_date?: string | null
           updated_at?: string
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
         }
         Update: {
+          context_description?: string | null
           created_at?: string
           end_date?: string | null
+          financial_flow?:
+            | Database["public"]["Enums"]["financial_flow_type"]
+            | null
           id?: string
           organization_id?: string
           person_id?: string
           relationship_type?: Database["public"]["Enums"]["affiliation_type"]
+          routing_context?:
+            | Database["public"]["Enums"]["routing_context_type"]
+            | null
           source_id?: string | null
           start_date?: string | null
           updated_at?: string
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
         }
         Relationships: [
           {
@@ -65,6 +95,67 @@ export type Database = {
           },
           {
             foreignKeyName: "media_affiliations_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "media_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_donation_routing: {
+        Row: {
+          control_relationship: string | null
+          created_at: string
+          destination_entity_id: string | null
+          destination_name: string
+          entity_id: string
+          id: string
+          routing_type: string
+          snapshot_date: string | null
+          source_id: string | null
+          source_url: string | null
+        }
+        Insert: {
+          control_relationship?: string | null
+          created_at?: string
+          destination_entity_id?: string | null
+          destination_name: string
+          entity_id: string
+          id?: string
+          routing_type: string
+          snapshot_date?: string | null
+          source_id?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          control_relationship?: string | null
+          created_at?: string
+          destination_entity_id?: string | null
+          destination_name?: string
+          entity_id?: string
+          id?: string
+          routing_type?: string
+          snapshot_date?: string | null
+          source_id?: string | null
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_donation_routing_destination_entity_id_fkey"
+            columns: ["destination_entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_donation_routing_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_donation_routing_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "media_sources"
@@ -421,6 +512,97 @@ export type Database = {
         }
         Relationships: []
       }
+      media_sponsorships: {
+        Row: {
+          context: string | null
+          created_at: string
+          disclosure_status: string | null
+          end_date: string | null
+          entity_id: string
+          financial_flow:
+            | Database["public"]["Enums"]["financial_flow_type"]
+            | null
+          id: string
+          notes: string | null
+          relationship_type: string
+          source_id: string | null
+          source_url: string | null
+          sponsor_entity_id: string | null
+          sponsor_name: string
+          start_date: string | null
+          updated_at: string
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          disclosure_status?: string | null
+          end_date?: string | null
+          entity_id: string
+          financial_flow?:
+            | Database["public"]["Enums"]["financial_flow_type"]
+            | null
+          id?: string
+          notes?: string | null
+          relationship_type: string
+          source_id?: string | null
+          source_url?: string | null
+          sponsor_entity_id?: string | null
+          sponsor_name: string
+          start_date?: string | null
+          updated_at?: string
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          disclosure_status?: string | null
+          end_date?: string | null
+          entity_id?: string
+          financial_flow?:
+            | Database["public"]["Enums"]["financial_flow_type"]
+            | null
+          id?: string
+          notes?: string | null
+          relationship_type?: string
+          source_id?: string | null
+          source_url?: string | null
+          sponsor_entity_id?: string | null
+          sponsor_name?: string
+          start_date?: string | null
+          updated_at?: string
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_sponsorships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_sponsorships_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "media_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_sponsorships_sponsor_entity_id_fkey"
+            columns: ["sponsor_entity_id"]
+            isOneToOne: false
+            referencedRelation: "media_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -438,10 +620,19 @@ export type Database = {
       business_entity_type: "LLC" | "INC" | "NONE" | "UNKNOWN"
       declared_role: "journalist" | "commentator" | "podcaster" | "activist"
       declared_scope: "news" | "opinion" | "mixed"
+      financial_flow_type: "none" | "indirect" | "direct" | "unknown"
       media_entity_type: "CORPORATE_MEDIA" | "INDEPENDENT_FIGURE" | "HYBRID"
       media_platform: "TV" | "DIGITAL" | "PODCAST" | "RADIO" | "SOCIAL"
       ownership_type: "PUBLIC" | "PRIVATE" | "SUBSIDIARY"
       revenue_band: "UNDER_100M" | "BETWEEN_100M_1B" | "OVER_1B"
+      routing_context_type:
+        | "donations"
+        | "security"
+        | "content"
+        | "employment"
+        | "legal"
+        | "advertising"
+        | "academic"
       source_type:
         | "SEC"
         | "FCC"
@@ -451,6 +642,7 @@ export type Database = {
         | "COURT"
         | "STATE_REGISTRY"
         | "MANUAL"
+      verification_status: "verified" | "unverified" | "disputed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -588,10 +780,20 @@ export const Constants = {
       business_entity_type: ["LLC", "INC", "NONE", "UNKNOWN"],
       declared_role: ["journalist", "commentator", "podcaster", "activist"],
       declared_scope: ["news", "opinion", "mixed"],
+      financial_flow_type: ["none", "indirect", "direct", "unknown"],
       media_entity_type: ["CORPORATE_MEDIA", "INDEPENDENT_FIGURE", "HYBRID"],
       media_platform: ["TV", "DIGITAL", "PODCAST", "RADIO", "SOCIAL"],
       ownership_type: ["PUBLIC", "PRIVATE", "SUBSIDIARY"],
       revenue_band: ["UNDER_100M", "BETWEEN_100M_1B", "OVER_1B"],
+      routing_context_type: [
+        "donations",
+        "security",
+        "content",
+        "employment",
+        "legal",
+        "advertising",
+        "academic",
+      ],
       source_type: [
         "SEC",
         "FCC",
@@ -602,6 +804,7 @@ export const Constants = {
         "STATE_REGISTRY",
         "MANUAL",
       ],
+      verification_status: ["verified", "unverified", "disputed"],
     },
   },
 } as const
