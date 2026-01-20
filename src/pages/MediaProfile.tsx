@@ -38,7 +38,9 @@ import {
   useMediaEntityLegalRecords, 
   useMediaEntityAffiliations,
   useMediaEntitySources,
-  useMediaEntityPlatforms
+  useMediaEntityPlatforms,
+  useMediaEntitySponsorships,
+  useMediaEntityDonationRouting
 } from '@/hooks/useMediaEntities';
 import { 
   ENTITY_TYPE_LABELS, 
@@ -46,6 +48,9 @@ import {
   AUDIENCE_BAND_LABELS,
   DECLARED_ROLE_LABELS,
   SOURCE_TYPE_LABELS,
+  AFFILIATION_TYPE_LABELS,
+  FINANCIAL_FLOW_LABELS,
+  VERIFICATION_STATUS_LABELS,
   type MediaPlatform
 } from '@/lib/mediaTypes';
 
@@ -89,6 +94,8 @@ export default function MediaProfilePage() {
   const { data: affiliations } = useMediaEntityAffiliations(id);
   const { data: entitySources = [] } = useMediaEntitySources(id);
   const { data: platforms = [] } = useMediaEntityPlatforms(id);
+  const { data: sponsorships = [] } = useMediaEntitySponsorships(id);
+  const { data: donationRouting = [] } = useMediaEntityDonationRouting(id);
   
   const isSaved = id ? has(id) : false;
 
@@ -252,9 +259,11 @@ export default function MediaProfilePage() {
 
         {/* Tabs for different sections */}
         <Tabs defaultValue="finances" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="finances">Finances & Monetization</TabsTrigger>
+          <TabsList className="bg-muted/50 p-1 flex-wrap h-auto gap-1">
+            <TabsTrigger value="finances">Finances</TabsTrigger>
             <TabsTrigger value="affiliations">Affiliations</TabsTrigger>
+            <TabsTrigger value="sponsorships">Sponsorships</TabsTrigger>
+            <TabsTrigger value="platforms">Platforms</TabsTrigger>
             <TabsTrigger value="legal">Legal Records</TabsTrigger>
             <TabsTrigger value="filings">Public Filings</TabsTrigger>
             <TabsTrigger value="sources">Sources</TabsTrigger>
@@ -398,8 +407,11 @@ export default function MediaProfilePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Professional Affiliations
+                  Documented Affiliations (Public Records)
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Professional relationships documented from verifiable public records.
+                </p>
               </CardHeader>
               <CardContent>
                 {affiliations && !Array.isArray(affiliations) && (affiliations.asEmployee.length > 0 || affiliations.asEmployer.length > 0) ? (
@@ -407,14 +419,54 @@ export default function MediaProfilePage() {
                     {affiliations.asEmployee.length > 0 && (
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-3">Organizations</h4>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {affiliations.asEmployee.map((aff: any) => (
-                            <div key={aff.id} className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                              <div className="flex items-center gap-3">
-                                <Building2 className="h-4 w-4 text-muted-foreground" />
-                                <span>{aff.organization?.name || 'Unknown Organization'}</span>
+                            <div key={aff.id} className="p-4 bg-muted/50 rounded border border-border/50">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                                  <div>
+                                    <Link 
+                                      to={`/media/${aff.organization?.id}`}
+                                      className="font-medium hover:text-primary transition-colors"
+                                    >
+                                      {aff.organization?.name || 'Unknown Organization'}
+                                    </Link>
+                                    {aff.context_description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{aff.context_description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge variant={aff.relationship_type === 'former' ? 'secondary' : 'outline'}>
+                                    {AFFILIATION_TYPE_LABELS[aff.relationship_type as keyof typeof AFFILIATION_TYPE_LABELS] || aff.relationship_type}
+                                  </Badge>
+                                  {aff.verification_status && (
+                                    <Badge variant={aff.verification_status === 'verified' ? 'default' : 'outline'} className="text-xs">
+                                      {VERIFICATION_STATUS_LABELS[aff.verification_status as keyof typeof VERIFICATION_STATUS_LABELS]}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
-                              <Badge variant="outline">{aff.relationship_type}</Badge>
+                              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-2">
+                                {aff.start_date && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(aff.start_date).getFullYear()} – {aff.end_date ? new Date(aff.end_date).getFullYear() : 'Present'}
+                                  </span>
+                                )}
+                                {aff.financial_flow && aff.financial_flow !== 'unknown' && (
+                                  <span className="flex items-center gap-1">
+                                    <DollarSign className="h-3 w-3" />
+                                    {FINANCIAL_FLOW_LABELS[aff.financial_flow as keyof typeof FINANCIAL_FLOW_LABELS]} flow
+                                  </span>
+                                )}
+                                {aff.routing_context && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {aff.routing_context}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -423,14 +475,49 @@ export default function MediaProfilePage() {
                     {affiliations.asEmployer.length > 0 && (
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-3">Associated People</h4>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {affiliations.asEmployer.map((aff: any) => (
-                            <div key={aff.id} className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                              <div className="flex items-center gap-3">
-                                <User className="h-4 w-4 text-muted-foreground" />
-                                <span>{aff.person?.name || 'Unknown Person'}</span>
+                            <div key={aff.id} className="p-4 bg-muted/50 rounded border border-border/50">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                  <User className="h-5 w-5 text-muted-foreground" />
+                                  <div>
+                                    <Link 
+                                      to={`/media/${aff.person?.id}`}
+                                      className="font-medium hover:text-primary transition-colors"
+                                    >
+                                      {aff.person?.name || 'Unknown Person'}
+                                    </Link>
+                                    {aff.context_description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{aff.context_description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge variant={aff.relationship_type === 'former' ? 'secondary' : 'outline'}>
+                                    {AFFILIATION_TYPE_LABELS[aff.relationship_type as keyof typeof AFFILIATION_TYPE_LABELS] || aff.relationship_type}
+                                  </Badge>
+                                  {aff.verification_status && (
+                                    <Badge variant={aff.verification_status === 'verified' ? 'default' : 'outline'} className="text-xs">
+                                      {VERIFICATION_STATUS_LABELS[aff.verification_status as keyof typeof VERIFICATION_STATUS_LABELS]}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
-                              <Badge variant="outline">{aff.relationship_type}</Badge>
+                              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-2">
+                                {aff.start_date && (
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(aff.start_date).getFullYear()} – {aff.end_date ? new Date(aff.end_date).getFullYear() : 'Present'}
+                                  </span>
+                                )}
+                                {aff.financial_flow && aff.financial_flow !== 'unknown' && (
+                                  <span className="flex items-center gap-1">
+                                    <DollarSign className="h-3 w-3" />
+                                    {FINANCIAL_FLOW_LABELS[aff.financial_flow as keyof typeof FINANCIAL_FLOW_LABELS]} flow
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -439,6 +526,212 @@ export default function MediaProfilePage() {
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-sm">No documented affiliations on record.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Donation Routing Section */}
+            {donationRouting.length > 0 && (
+              <Card className="bg-card border border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Donation Routing Metadata
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Donations are routed via third-party entities. CIVIC's Roster documents routing destinations without implying ownership or control.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {donationRouting.map((route: any) => (
+                      <div key={route.id} className="p-4 bg-muted/50 rounded border border-border/50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <DollarSign className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">{route.destination_name}</p>
+                              <p className="text-sm text-muted-foreground capitalize">{route.routing_type?.replace('_', ' ')}</p>
+                            </div>
+                          </div>
+                          <div className="text-right text-sm text-muted-foreground">
+                            {route.snapshot_date && (
+                              <p>Snapshot: {new Date(route.snapshot_date).toLocaleDateString()}</p>
+                            )}
+                            {route.control_relationship && route.control_relationship !== 'not_established' && (
+                              <Badge variant="outline" className="mt-1 capitalize">
+                                {route.control_relationship}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {route.source_url && (
+                          <a 
+                            href={route.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
+                          >
+                            View Source <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Sponsorships Tab */}
+          <TabsContent value="sponsorships" className="space-y-6">
+            <Card className="bg-card border border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  Sponsorships & Commercial Relationships
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Commercial partnerships do not imply ownership, employment, or editorial control.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {sponsorships.length > 0 ? (
+                  <div className="space-y-3">
+                    {sponsorships.map((sponsorship: any) => (
+                      <div key={sponsorship.id} className="p-4 bg-muted/50 rounded border border-border/50">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                              <Briefcase className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              {sponsorship.sponsor_entity ? (
+                                <Link 
+                                  to={`/media/${sponsorship.sponsor_entity.id}`}
+                                  className="font-medium hover:text-primary transition-colors"
+                                >
+                                  {sponsorship.sponsor_name}
+                                </Link>
+                              ) : (
+                                <p className="font-medium">{sponsorship.sponsor_name}</p>
+                              )}
+                              <p className="text-sm text-muted-foreground capitalize">
+                                {sponsorship.relationship_type?.replace('_', ' ')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            {sponsorship.disclosure_status && (
+                              <Badge variant={sponsorship.disclosure_status === 'disclosed' ? 'default' : 'secondary'} className="text-xs capitalize">
+                                {sponsorship.disclosure_status}
+                              </Badge>
+                            )}
+                            {sponsorship.verification_status && (
+                              <Badge variant={sponsorship.verification_status === 'verified' ? 'outline' : 'secondary'} className="text-xs">
+                                {VERIFICATION_STATUS_LABELS[sponsorship.verification_status as keyof typeof VERIFICATION_STATUS_LABELS]}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {sponsorship.context && (
+                          <p className="text-sm text-muted-foreground mb-2">{sponsorship.context}</p>
+                        )}
+                        {sponsorship.notes && (
+                          <p className="text-sm text-muted-foreground italic">{sponsorship.notes}</p>
+                        )}
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mt-2">
+                          {sponsorship.start_date && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(sponsorship.start_date).getFullYear()} – {sponsorship.end_date ? new Date(sponsorship.end_date).getFullYear() : 'Present'}
+                            </span>
+                          )}
+                          {sponsorship.financial_flow && sponsorship.financial_flow !== 'unknown' && (
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              {FINANCIAL_FLOW_LABELS[sponsorship.financial_flow as keyof typeof FINANCIAL_FLOW_LABELS]} flow
+                            </span>
+                          )}
+                        </div>
+                        {sponsorship.source_url && (
+                          <a 
+                            href={sponsorship.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
+                          >
+                            View Source <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No sponsorships or commercial relationships documented.</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Platforms Tab */}
+          <TabsContent value="platforms" className="space-y-6">
+            <Card className="bg-card border border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Share2 className="h-5 w-5" />
+                  Platform Verifications
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Verified platform presence with follower metrics from public data.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {platforms.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {platforms.map((platform: any) => {
+                      const Icon = getPlatformIcon(platform.platform);
+                      return (
+                        <div key={platform.id} className="p-4 bg-muted/50 rounded border border-border/50">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
+                                <Icon className="h-5 w-5 text-primary" />
+                              </div>
+                              <div>
+                                <p className="font-medium">{PLATFORM_LABELS[platform.platform as MediaPlatform] || platform.platform}</p>
+                                {platform.platform_handle && (
+                                  <p className="text-sm text-muted-foreground">{platform.platform_handle}</p>
+                                )}
+                              </div>
+                            </div>
+                            {platform.follower_count_band && (
+                              <Badge variant="secondary" className="text-xs">
+                                {AUDIENCE_BAND_LABELS[platform.follower_count_band as keyof typeof AUDIENCE_BAND_LABELS]} followers
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            {platform.verified_at && (
+                              <span>Verified: {new Date(platform.verified_at).toLocaleDateString()}</span>
+                            )}
+                            {platform.platform_url && (
+                              <a 
+                                href={platform.platform_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1"
+                              >
+                                Visit <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">No platform verifications on record.</p>
                 )}
               </CardContent>
             </Card>
