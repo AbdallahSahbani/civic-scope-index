@@ -193,3 +193,49 @@ export function useMediaEntitySources(entityId: string | undefined) {
     enabled: !!entityId,
   });
 }
+
+// Fetch sponsorships (commercial relationships - separate from affiliations)
+export function useMediaEntitySponsorships(entityId: string | undefined) {
+  return useQuery({
+    queryKey: ['media-entity-sponsorships', entityId],
+    queryFn: async () => {
+      if (!entityId) return [];
+
+      const { data, error } = await supabase
+        .from('media_sponsorships')
+        .select(`
+          *,
+          sponsor_entity:sponsor_entity_id(id, name, entity_type, logo_url)
+        `)
+        .eq('entity_id', entityId)
+        .order('start_date', { ascending: false });
+
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!entityId,
+  });
+}
+
+// Fetch donation routing metadata
+export function useMediaEntityDonationRouting(entityId: string | undefined) {
+  return useQuery({
+    queryKey: ['media-entity-donation-routing', entityId],
+    queryFn: async () => {
+      if (!entityId) return [];
+
+      const { data, error } = await supabase
+        .from('media_donation_routing')
+        .select(`
+          *,
+          destination_entity:destination_entity_id(id, name, entity_type, logo_url)
+        `)
+        .eq('entity_id', entityId)
+        .order('snapshot_date', { ascending: false });
+
+      if (error) throw new Error(error.message);
+      return data || [];
+    },
+    enabled: !!entityId,
+  });
+}
